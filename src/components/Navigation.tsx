@@ -1,22 +1,31 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { CalculatorIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Navigation = () => {
   return (
     <header className="border-b sticky top-0 z-40 bg-background/80 backdrop-blur-sm">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
-          <a href="#" className="text-xl font-medium">
+          <Link to="/" className="text-xl font-medium">
             Minimalist
-          </a>
+          </Link>
           <nav className="hidden md:flex items-center gap-6">
-            <a 
-              href="#" 
+            <Link 
+              to="/" 
               className="text-sm font-medium transition-colors hover:text-primary"
             >
               Home
-            </a>
+            </Link>
+            <Link 
+              to="/quotation" 
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary flex items-center"
+            >
+              <CalculatorIcon className="h-4 w-4 mr-1" />
+              Quotation
+            </Link>
             <a 
               href="#features" 
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
