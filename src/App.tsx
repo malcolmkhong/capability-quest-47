@@ -14,12 +14,9 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
-// Replace this with your actual Clerk publishable key
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
-if (!PUBLISHABLE_KEY) {
-  console.error("Missing VITE_CLERK_PUBLISHABLE_KEY environment variable");
-}
+// For development purposes only - replace with your Clerk publishable key
+// In production, use environment variables: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+const PUBLISHABLE_KEY = "pk_test_Y2FyaW5nLW1hbmF0ZWUtNzQuY2xlcmsuYWNjb3VudHMuZGV2JA";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
