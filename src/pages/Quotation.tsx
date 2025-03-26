@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,7 +11,8 @@ import {
   Save, 
   Send, 
   Download,
-  ArrowLeft 
+  ArrowLeft,
+  ListFilter
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Navigation from "@/components/Navigation";
+import { constructionCategories, constructionUnits, CategoryOption } from "@/utils/constructionCategories";
+import { useToast } from "@/hooks/use-toast";
 
 // Define the schema for the form
 const formSchema = z.object({
@@ -58,6 +61,8 @@ const formSchema = z.object({
 // Define the schema for line items
 interface LineItem {
   id: string;
+  category: string;
+  subcategory: string;
   description: string;
   quantity: number;
   unit: string;
@@ -67,10 +72,13 @@ interface LineItem {
 
 const QuotationPage = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [subtotal, setSubtotal] = useState(0);
   const [taxRate, setTaxRate] = useState(0);
   const [discount, setDiscount] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [availableSubcategories, setAvailableSubcategories] = useState<{ label: string; value: string }[]>([]);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -82,17 +90,29 @@ const QuotationPage = () => {
       projectAddress: "",
       projectDescription: "",
       validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10), // 30 days from now
-      paymentTerms: "14 days after invoice date",
+      paymentTerms: "50% upfront, 50% on completion",
     },
   });
+
+  // Update subcategories when category changes
+  useEffect(() => {
+    if (selectedCategory) {
+      const category = constructionCategories.find(cat => cat.value === selectedCategory);
+      if (category) {
+        setAvailableSubcategories(category.subcategories);
+      }
+    }
+  }, [selectedCategory]);
 
   // Add a new line item
   const addLineItem = () => {
     const newItem: LineItem = {
       id: Date.now().toString(),
+      category: "",
+      subcategory: "",
       description: "",
       quantity: 1,
-      unit: "hours",
+      unit: "sq.ft",
       unitPrice: 0,
       total: 0,
     };
@@ -104,6 +124,12 @@ const QuotationPage = () => {
     const updatedItems = lineItems.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
+        
+        // If category changes, reset subcategory
+        if (field === 'category') {
+          updatedItem.subcategory = "";
+          setSelectedCategory(value);
+        }
         
         // Recalculate total if quantity or unitPrice changes
         if (field === 'quantity' || field === 'unitPrice') {
@@ -147,19 +173,38 @@ const QuotationPage = () => {
     return subtotal + calculateTax() - calculateDiscount();
   };
 
+  // Format currency in Malaysian Ringgit
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('ms-MY', {
+      style: 'currency',
+      currency: 'MYR',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
+
   const onSubmit = (data: z.infer<typeof formSchema>) => {
+    if (lineItems.length === 0) {
+      toast({
+        title: "No line items",
+        description: "Please add at least one item to the quotation",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // Here you would typically save the quotation or send it
     console.log("Form data:", data);
     console.log("Line items:", lineItems);
     console.log("Total amount:", calculateTotal());
     
-    // For demonstration, we'll just show an alert
-    alert("Quotation created successfully!");
+    toast({
+      title: "Quotation created",
+      description: "Your quotation has been saved successfully",
+    });
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
       <Navigation />
       
       <main className="container mx-auto py-8 px-4">
@@ -177,7 +222,7 @@ const QuotationPage = () => {
           <div className="w-full lg:w-1/2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl">New Quotation</CardTitle>
+                <CardTitle className="text-2xl">New Construction Quotation</CardTitle>
               </CardHeader>
               <CardContent>
                 <Form {...form}>
@@ -217,7 +262,7 @@ const QuotationPage = () => {
                         name="clientPhone"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Client Phone (Optional)</FormLabel>
+                            <FormLabel>Client Phone</FormLabel>
                             <FormControl>
                               <Input placeholder="Phone number" {...field} />
                             </FormControl>
@@ -265,7 +310,7 @@ const QuotationPage = () => {
                             <FormLabel>Project Description</FormLabel>
                             <FormControl>
                               <Textarea 
-                                placeholder="Describe the project and scope of work" 
+                                placeholder="Describe the construction project and scope of work" 
                                 className="h-24"
                                 {...field} 
                               />
@@ -310,6 +355,8 @@ const QuotationPage = () => {
                               <SelectContent>
                                 <SelectItem value="On completion">On completion</SelectItem>
                                 <SelectItem value="50% upfront, 50% on completion">50% upfront, 50% on completion</SelectItem>
+                                <SelectItem value="30% upfront, 30% midway, 40% on completion">30% upfront, 30% midway, 40% on completion</SelectItem>
+                                <SelectItem value="Progress payment">Progress payment</SelectItem>
                                 <SelectItem value="14 days after invoice date">14 days after invoice date</SelectItem>
                                 <SelectItem value="30 days after invoice date">30 days after invoice date</SelectItem>
                               </SelectContent>
@@ -337,17 +384,57 @@ const QuotationPage = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead>Category</TableHead>
                           <TableHead>Description</TableHead>
-                          <TableHead className="w-[100px]">Qty</TableHead>
-                          <TableHead className="w-[100px]">Unit</TableHead>
-                          <TableHead className="w-[120px]">Price</TableHead>
-                          <TableHead className="text-right w-[120px]">Total</TableHead>
+                          <TableHead className="w-[80px]">Qty</TableHead>
+                          <TableHead className="w-[80px]">Unit</TableHead>
+                          <TableHead className="w-[100px]">Price</TableHead>
+                          <TableHead className="text-right w-[100px]">Total</TableHead>
                           <TableHead className="w-[40px]"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {lineItems.map((item) => (
                           <TableRow key={item.id}>
+                            <TableCell>
+                              <div className="space-y-2">
+                                <Select
+                                  value={item.category}
+                                  onValueChange={(value) => updateLineItem(item.id, 'category', value)}
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Category" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {constructionCategories.map((category) => (
+                                      <SelectItem key={category.value} value={category.value}>
+                                        {category.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                
+                                {item.category && (
+                                  <Select
+                                    value={item.subcategory}
+                                    onValueChange={(value) => updateLineItem(item.id, 'subcategory', value)}
+                                  >
+                                    <SelectTrigger className="w-full">
+                                      <SelectValue placeholder="Subcategory" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {constructionCategories
+                                        .find(cat => cat.value === item.category)
+                                        ?.subcategories.map((subcat) => (
+                                          <SelectItem key={subcat.value} value={subcat.value}>
+                                            {subcat.label}
+                                          </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>
                               <Input 
                                 value={item.description} 
@@ -372,24 +459,28 @@ const QuotationPage = () => {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="hours">Hours</SelectItem>
-                                  <SelectItem value="days">Days</SelectItem>
-                                  <SelectItem value="sq.ft">Sq. Ft.</SelectItem>
-                                  <SelectItem value="units">Units</SelectItem>
+                                  {constructionUnits.map((unit) => (
+                                    <SelectItem key={unit.value} value={unit.value}>
+                                      {unit.label}
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                             </TableCell>
                             <TableCell>
-                              <Input 
-                                type="number" 
-                                value={item.unitPrice}
-                                onChange={(e) => updateLineItem(item.id, 'unitPrice', Number(e.target.value))}
-                                min="0"
-                                step="0.01"
-                              />
+                              <div className="flex items-center">
+                                <span className="mr-1">RM</span>
+                                <Input 
+                                  type="number" 
+                                  value={item.unitPrice}
+                                  onChange={(e) => updateLineItem(item.id, 'unitPrice', Number(e.target.value))}
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
                             </TableCell>
                             <TableCell className="text-right font-medium">
-                              ${item.total.toFixed(2)}
+                              {formatCurrency(item.total)}
                             </TableCell>
                             <TableCell>
                               <Button 
@@ -404,7 +495,7 @@ const QuotationPage = () => {
                         ))}
                         {lineItems.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                            <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                               No items added yet. Click "Add Item" to begin.
                             </TableCell>
                           </TableRow>
@@ -425,7 +516,7 @@ const QuotationPage = () => {
                   <div className="space-y-2 border-t pt-4">
                     <div className="flex justify-between">
                       <span>Subtotal:</span>
-                      <span>${subtotal.toFixed(2)}</span>
+                      <span>{formatCurrency(subtotal)}</span>
                     </div>
                     
                     <div className="flex items-center justify-between">
@@ -442,7 +533,7 @@ const QuotationPage = () => {
                     
                     <div className="flex justify-between">
                       <span>Tax Amount:</span>
-                      <span>${calculateTax().toFixed(2)}</span>
+                      <span>{formatCurrency(calculateTax())}</span>
                     </div>
                     
                     <div className="flex items-center justify-between">
@@ -459,12 +550,12 @@ const QuotationPage = () => {
                     
                     <div className="flex justify-between">
                       <span>Discount Amount:</span>
-                      <span>-${calculateDiscount().toFixed(2)}</span>
+                      <span>-{formatCurrency(calculateDiscount())}</span>
                     </div>
                     
                     <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2">
                       <span>Total:</span>
-                      <span>${calculateTotal().toFixed(2)}</span>
+                      <span>{formatCurrency(calculateTotal())}</span>
                     </div>
                   </div>
                   
