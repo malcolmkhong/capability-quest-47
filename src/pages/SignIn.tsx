@@ -8,7 +8,18 @@ const SignIn = () => {
       <Navigation />
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
-          <ClerkSignIn path="/sign-in" routing="path" signUpUrl="/sign-up" />
+          <ClerkSignIn 
+            path="/sign-in" 
+            routing="path" 
+            signUpUrl="/sign-up"
+            appearance={{
+              elements: {
+                footerAction: "hidden",
+                card: "shadow-lg"
+              }
+            }}
+            afterSignInUrl="/quotation"
+          />
         </div>
       </div>
     </div>
