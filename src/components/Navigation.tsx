@@ -1,15 +1,10 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { CalculatorIcon, LogOut, User } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth, useUser, SignInButton, SignUpButton, UserButton } from "@clerk/clerk-react";
+import { CalculatorIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Navigation = () => {
-  const { isSignedIn } = useAuth();
-  const { user } = useUser();
-  const navigate = useNavigate();
-
   return (
     <header className="border-b sticky top-0 z-40 bg-background/80 backdrop-blur-sm">
       <div className="container flex h-16 items-center justify-between">
@@ -52,25 +47,10 @@ const Navigation = () => {
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          {isSignedIn ? (
-            <div className="flex items-center gap-4">
-              <span className="text-sm hidden md:inline-block">
-                {user?.primaryEmailAddress?.emailAddress}
-              </span>
-              <UserButton afterSignOutUrl="/" />
-            </div>
-          ) : (
-            <>
-              <SignInButton mode="modal">
-                <Button variant="outline" size="sm">
-                  Log In
-                </Button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <Button size="sm">Sign Up</Button>
-              </SignUpButton>
-            </>
-          )}
+          <Button variant="outline" size="sm">
+            Log In
+          </Button>
+          <Button size="sm">Sign Up</Button>
         </div>
       </div>
     </header>
