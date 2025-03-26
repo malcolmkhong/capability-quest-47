@@ -42,6 +42,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import Navigation from "@/components/Navigation";
 import { constructionCategories, constructionUnits, CategoryOption } from "@/utils/constructionCategories";
 import { useToast } from "@/hooks/use-toast";
@@ -384,7 +389,7 @@ const QuotationPage = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Category</TableHead>
+                          <TableHead>Category/Subcategory</TableHead>
                           <TableHead>Description</TableHead>
                           <TableHead className="w-[80px]">Qty</TableHead>
                           <TableHead className="w-[80px]">Unit</TableHead>
