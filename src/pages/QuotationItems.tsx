@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, PlusCircle, Trash2 } from "lucide-react";
@@ -26,7 +25,6 @@ import { constructionCategories, constructionUnits } from "@/utils/constructionC
 import { useToast } from "@/hooks/use-toast";
 import { ClientFormData } from "./QuotationClient";
 
-// Define the type for line items
 interface LineItem {
   id: string;
   category: string;
@@ -48,7 +46,6 @@ const QuotationItemsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [clientData, setClientData] = useState<ClientFormData | null>(null);
   
-  // Load client data from localStorage
   useEffect(() => {
     const savedClientData = localStorage.getItem('quotationClientData');
     if (!savedClientData) {
@@ -63,13 +60,11 @@ const QuotationItemsPage = () => {
     
     setClientData(JSON.parse(savedClientData));
     
-    // Also load any existing line items
     const savedLineItems = localStorage.getItem('quotationLineItems');
     if (savedLineItems) {
       setLineItems(JSON.parse(savedLineItems));
     }
     
-    // Load tax and discount if available
     const savedTaxRate = localStorage.getItem('quotationTaxRate');
     const savedDiscount = localStorage.getItem('quotationDiscount');
     
@@ -77,7 +72,6 @@ const QuotationItemsPage = () => {
     if (savedDiscount) setDiscount(JSON.parse(savedDiscount));
   }, [navigate, toast]);
   
-  // Add a new line item
   const addLineItem = () => {
     const newItem: LineItem = {
       id: Date.now().toString(),
@@ -94,19 +88,16 @@ const QuotationItemsPage = () => {
     localStorage.setItem('quotationLineItems', JSON.stringify(updatedItems));
   };
 
-  // Update a line item
   const updateLineItem = (id: string, field: keyof LineItem, value: any) => {
     const updatedItems = lineItems.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
         
-        // If category changes, reset subcategory
         if (field === 'category') {
           updatedItem.subcategory = "";
           setSelectedCategory(value);
         }
         
-        // Recalculate total if quantity or unitPrice changes
         if (field === 'quantity' || field === 'unitPrice') {
           updatedItem.total = updatedItem.quantity * updatedItem.unitPrice;
         }
@@ -121,7 +112,6 @@ const QuotationItemsPage = () => {
     calculateSubtotal(updatedItems);
   };
 
-  // Remove a line item
   const removeLineItem = (id: string) => {
     const filteredItems = lineItems.filter(item => item.id !== id);
     setLineItems(filteredItems);
@@ -129,28 +119,23 @@ const QuotationItemsPage = () => {
     calculateSubtotal(filteredItems);
   };
 
-  // Calculate subtotal
   const calculateSubtotal = (items: LineItem[]) => {
     const total = items.reduce((sum, item) => sum + item.total, 0);
     setSubtotal(total);
   };
 
-  // Calculate tax
   const calculateTax = () => {
     return subtotal * (taxRate / 100);
   };
 
-  // Calculate discount amount
   const calculateDiscount = () => {
     return subtotal * (discount / 100);
   };
 
-  // Calculate grand total
   const calculateTotal = () => {
     return subtotal + calculateTax() - calculateDiscount();
   };
 
-  // Format currency in Malaysian Ringgit
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('ms-MY', {
       style: 'currency',
@@ -159,7 +144,6 @@ const QuotationItemsPage = () => {
     }).format(amount);
   };
   
-  // Save and continue to export
   const handleContinue = () => {
     if (lineItems.length === 0) {
       toast({
@@ -170,11 +154,9 @@ const QuotationItemsPage = () => {
       return;
     }
     
-    // Save tax and discount rates
     localStorage.setItem('quotationTaxRate', JSON.stringify(taxRate));
     localStorage.setItem('quotationDiscount', JSON.stringify(discount));
     
-    // Navigate to export page
     navigate("/quotation/export");
   };
 
@@ -229,11 +211,11 @@ const QuotationItemsPage = () => {
                     <TableRow>
                       <TableHead>Category/Subcategory</TableHead>
                       <TableHead>Description</TableHead>
-                      <TableHead className="w-[80px]">Qty</TableHead>
-                      <TableHead className="w-[80px]">Unit</TableHead>
-                      <TableHead className="w-[100px]">Price</TableHead>
-                      <TableHead className="text-right w-[100px]">Total</TableHead>
-                      <TableHead className="w-[40px]"></TableHead>
+                      <TableHead className="w-[120px]">Qty</TableHead>
+                      <TableHead className="w-[120px]">Unit</TableHead>
+                      <TableHead className="w-[150px]">Price</TableHead>
+                      <TableHead className="text-right w-[120px]">Total</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -291,6 +273,7 @@ const QuotationItemsPage = () => {
                             value={item.quantity}
                             onChange={(e) => updateLineItem(item.id, 'quantity', Number(e.target.value))}
                             min="1"
+                            className="w-full"
                           />
                         </TableCell>
                         <TableCell>
@@ -298,7 +281,7 @@ const QuotationItemsPage = () => {
                             value={item.unit}
                             onValueChange={(value) => updateLineItem(item.id, 'unit', value)}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -319,6 +302,7 @@ const QuotationItemsPage = () => {
                               onChange={(e) => updateLineItem(item.id, 'unitPrice', Number(e.target.value))}
                               min="0"
                               step="0.01"
+                              className="w-full"
                             />
                           </div>
                         </TableCell>
@@ -368,7 +352,7 @@ const QuotationItemsPage = () => {
                     type="number" 
                     value={taxRate}
                     onChange={(e) => setTaxRate(Number(e.target.value))}
-                    className="w-24"
+                    className="w-32"
                     min="0"
                     max="100"
                   />
@@ -385,7 +369,7 @@ const QuotationItemsPage = () => {
                     type="number" 
                     value={discount}
                     onChange={(e) => setDiscount(Number(e.target.value))}
-                    className="w-24"
+                    className="w-32"
                     min="0"
                     max="100"
                   />
