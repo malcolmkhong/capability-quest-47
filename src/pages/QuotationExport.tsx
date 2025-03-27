@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, Send, Save, FileCheck } from "lucide-react";
@@ -16,8 +15,8 @@ import {
 import Navigation from "@/components/Navigation";
 import { useToast } from "@/hooks/use-toast";
 import { ClientFormData } from "./QuotationClient";
+import { constructionCategories } from "@/utils/constructionCategories";
 
-// Define the type for line items
 interface LineItem {
   id: string;
   category: string;
@@ -39,16 +38,13 @@ const QuotationExportPage = () => {
   const [subtotal, setSubtotal] = useState(0);
   const [quotationNumber, setQuotationNumber] = useState("");
   
-  // Load data from localStorage
   useEffect(() => {
-    // Generate a quotation number
     const date = new Date();
     const year = date.getFullYear().toString().substr(-2);
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     setQuotationNumber(`Q${year}${month}-${random}`);
     
-    // Load client data
     const savedClientData = localStorage.getItem('quotationClientData');
     if (!savedClientData) {
       toast({
@@ -62,7 +58,6 @@ const QuotationExportPage = () => {
     
     setClientData(JSON.parse(savedClientData));
     
-    // Load line items
     const savedLineItems = localStorage.getItem('quotationLineItems');
     if (!savedLineItems) {
       toast({
@@ -77,11 +72,9 @@ const QuotationExportPage = () => {
     const items = JSON.parse(savedLineItems);
     setLineItems(items);
     
-    // Calculate subtotal
     const total = items.reduce((sum: number, item: LineItem) => sum + item.total, 0);
     setSubtotal(total);
     
-    // Load tax and discount
     const savedTaxRate = localStorage.getItem('quotationTaxRate');
     const savedDiscount = localStorage.getItem('quotationDiscount');
     
@@ -89,22 +82,18 @@ const QuotationExportPage = () => {
     if (savedDiscount) setDiscount(JSON.parse(savedDiscount));
   }, [navigate, toast]);
   
-  // Calculate tax
   const calculateTax = () => {
     return subtotal * (taxRate / 100);
   };
 
-  // Calculate discount amount
   const calculateDiscount = () => {
     return subtotal * (discount / 100);
   };
 
-  // Calculate grand total
   const calculateTotal = () => {
     return subtotal + calculateTax() - calculateDiscount();
   };
 
-  // Format currency in Malaysian Ringgit
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('ms-MY', {
       style: 'currency',
@@ -113,7 +102,6 @@ const QuotationExportPage = () => {
     }).format(amount);
   };
   
-  // Format date nicely
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('en-MY', {
@@ -123,42 +111,33 @@ const QuotationExportPage = () => {
     }).format(date);
   };
   
-  // Handle save quotation
   const handleSaveQuotation = () => {
-    // In a real app, this would save to a database
     toast({
       title: "Quotation saved",
       description: `Quotation ${quotationNumber} has been saved successfully`,
     });
   };
   
-  // Handle email to client
   const handleEmailToClient = () => {
-    // In a real app, this would send an email
     toast({
       title: "Email sent",
       description: `Quotation sent to ${clientData?.clientEmail}`,
     });
   };
   
-  // Handle download PDF
   const handleDownloadPDF = () => {
-    // In a real app, this would generate and download a PDF
     toast({
       title: "PDF generated",
       description: "Your quotation PDF is downloading",
     });
   };
   
-  // Handle create new quotation
   const handleNewQuotation = () => {
-    // Clear all localStorage
     localStorage.removeItem('quotationClientData');
     localStorage.removeItem('quotationLineItems');
     localStorage.removeItem('quotationTaxRate');
     localStorage.removeItem('quotationDiscount');
     
-    // Navigate to first step
     navigate("/quotation/client");
     
     toast({
