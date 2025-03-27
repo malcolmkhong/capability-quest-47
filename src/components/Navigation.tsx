@@ -1,7 +1,7 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { CalculatorIcon } from "lucide-react";
+import { CalculatorIcon, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Navigation = () => {
@@ -20,11 +20,11 @@ const Navigation = () => {
               Home
             </Link>
             <Link 
-              to="/quotation" 
+              to="/quotation/client" 
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary flex items-center"
             >
               <CalculatorIcon className="h-4 w-4 mr-1" />
-              Quotation
+              New Quotation
             </Link>
             <a 
               href="#features" 

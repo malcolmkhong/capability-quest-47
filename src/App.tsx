@@ -7,6 +7,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Quotation from "./pages/Quotation";
+import QuotationClient from "./pages/QuotationClient";
+import QuotationItems from "./pages/QuotationItems";
+import QuotationExport from "./pages/QuotationExport";
 
 const queryClient = new QueryClient();
 
@@ -19,6 +22,9 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/quotation" element={<Quotation />} />
+          <Route path="/quotation/client" element={<QuotationClient />} />
+          <Route path="/quotation/items" element={<QuotationItems />} />
+          <Route path="/quotation/export" element={<QuotationExport />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
