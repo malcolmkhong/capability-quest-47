@@ -3,6 +3,7 @@
 export interface CategoryOption {
   label: string;
   value: string;
+  description: string;
   subcategories: SubcategoryOption[];
 }
 
@@ -15,6 +16,7 @@ export const constructionCategories: CategoryOption[] = [
   {
     label: "M&E (Mechanical & Electrical)",
     value: "me",
+    description: "Supply & Install",
     subcategories: [
       { label: "Electrical Wiring", value: "electrical_wiring" },
       { label: "Lighting", value: "lighting" },
@@ -26,11 +28,17 @@ export const constructionCategories: CategoryOption[] = [
       { label: "Home Automation", value: "home_automation" },
       { label: "Ventilation", value: "ventilation" },
       { label: "Generators", value: "generators" },
+      { label: "Electrical Outlets", value: "electrical_outlets" },
+      { label: "Circuit Breakers", value: "circuit_breakers" },
+      { label: "Transformers", value: "transformers" },
+      { label: "Water Heaters", value: "water_heaters" },
+      { label: "Gas Piping", value: "gas_piping" }
     ]
   },
   {
     label: "Flooring",
     value: "flooring",
+    description: "Supply & Install",
     subcategories: [
       { label: "Tile Installation", value: "tile" },
       { label: "Timber Flooring", value: "timber" },
@@ -42,11 +50,17 @@ export const constructionCategories: CategoryOption[] = [
       { label: "Epoxy", value: "epoxy" },
       { label: "Laminate", value: "laminate" },
       { label: "Bamboo", value: "bamboo" },
+      { label: "Parquet", value: "parquet" },
+      { label: "Linoleum", value: "linoleum" },
+      { label: "Granite", value: "granite" },
+      { label: "Cork", value: "cork" },
+      { label: "Rubber", value: "rubber" }
     ]
   },
   {
     label: "Painting",
     value: "painting",
+    description: "Supply & Paint",
     subcategories: [
       { label: "Interior Walls", value: "interior_walls" },
       { label: "Exterior Walls", value: "exterior_walls" },
@@ -58,11 +72,17 @@ export const constructionCategories: CategoryOption[] = [
       { label: "Staining", value: "staining" },
       { label: "Waterproofing Paint", value: "waterproof_paint" },
       { label: "Decorative Paint", value: "decorative_paint" },
+      { label: "Priming", value: "priming" },
+      { label: "Metal Surfaces", value: "metal_surfaces" },
+      { label: "Wood Surfaces", value: "wood_surfaces" },
+      { label: "Spray Painting", value: "spray_painting" },
+      { label: "Enamel Painting", value: "enamel_painting" }
     ]
   },
   {
     label: "Carpentry",
     value: "carpentry",
+    description: "Supply & Fabricate",
     subcategories: [
       { label: "Custom Cabinetry", value: "cabinetry" },
       { label: "Door Installation", value: "doors" },
@@ -74,11 +94,17 @@ export const constructionCategories: CategoryOption[] = [
       { label: "Wooden Flooring", value: "wooden_flooring" },
       { label: "Wooden Ceiling", value: "wooden_ceiling" },
       { label: "Built-in Furniture", value: "built_in_furniture" },
+      { label: "Staircase", value: "staircase" },
+      { label: "Wood Paneling", value: "wood_paneling" },
+      { label: "Custom Tables", value: "custom_tables" },
+      { label: "Wood Restoration", value: "wood_restoration" },
+      { label: "Pergolas", value: "pergolas" }
     ]
   },
   {
     label: "Masonry",
     value: "masonry",
+    description: "Supply & Build",
     subcategories: [
       { label: "Brick Laying", value: "brick" },
       { label: "Stone Work", value: "stone" },
@@ -90,11 +116,17 @@ export const constructionCategories: CategoryOption[] = [
       { label: "Marble Work", value: "marble_work" },
       { label: "Paver Installation", value: "pavers" },
       { label: "Render Finishing", value: "render" },
+      { label: "Stone Veneer", value: "stone_veneer" },
+      { label: "Brick Restoration", value: "brick_restoration" },
+      { label: "Chimney Construction", value: "chimney" },
+      { label: "Decorative Masonry", value: "decorative_masonry" },
+      { label: "Concrete Stamping", value: "concrete_stamping" }
     ]
   },
   {
     label: "Roofing",
     value: "roofing",
+    description: "Supply & Install",
     subcategories: [
       { label: "Tile Roofing", value: "tile_roofing" },
       { label: "Metal Roofing", value: "metal_roofing" },
@@ -106,11 +138,17 @@ export const constructionCategories: CategoryOption[] = [
       { label: "Skylights", value: "skylights" },
       { label: "Solar Roof Integration", value: "solar_roof" },
       { label: "Green Roofing", value: "green_roof" },
+      { label: "Roof Ventilation", value: "roof_ventilation" },
+      { label: "Roof Repairs", value: "roof_repairs" },
+      { label: "Clay Tile Roofing", value: "clay_tile" },
+      { label: "Slate Roofing", value: "slate_roofing" },
+      { label: "Roof Coatings", value: "roof_coatings" }
     ]
   },
   {
     label: "Foundation",
     value: "foundation",
+    description: "Supply & Construct",
     subcategories: [
       { label: "Excavation", value: "excavation" },
       { label: "Concrete Foundation", value: "concrete_foundation" },
@@ -122,11 +160,17 @@ export const constructionCategories: CategoryOption[] = [
       { label: "Foundation Repair", value: "foundation_repair" },
       { label: "Gravel Beds", value: "gravel_beds" },
       { label: "Drainage Systems", value: "drainage_systems" },
+      { label: "Soil Stabilization", value: "soil_stabilization" },
+      { label: "Slab Foundation", value: "slab_foundation" },
+      { label: "Basement Construction", value: "basement" },
+      { label: "Caisson Foundation", value: "caisson" },
+      { label: "Pier and Beam", value: "pier_beam" }
     ]
   },
   {
     label: "Wall & Ceiling",
     value: "wall_ceiling",
+    description: "Supply & Finish",
     subcategories: [
       { label: "Drywall Installation", value: "drywall" },
       { label: "Ceiling Installation", value: "ceiling_install" },
@@ -138,11 +182,17 @@ export const constructionCategories: CategoryOption[] = [
       { label: "Cornice Work", value: "cornice" },
       { label: "Decorative Molding", value: "decorative_molding" },
       { label: "Textured Finishing", value: "textured_finish" },
+      { label: "Plaster Finishing", value: "plaster" },
+      { label: "Coffered Ceiling", value: "coffered_ceiling" },
+      { label: "Gypsum Board", value: "gypsum" },
+      { label: "PVC Ceiling", value: "pvc_ceiling" },
+      { label: "Wall Cladding", value: "wall_cladding_finish" }
     ]
   },
   {
     label: "Glass & Aluminum",
     value: "glass_aluminum",
+    description: "Supply & Install",
     subcategories: [
       { label: "Window Installation", value: "window_install" },
       { label: "Glass Doors", value: "glass_doors" },
@@ -154,11 +204,17 @@ export const constructionCategories: CategoryOption[] = [
       { label: "Glass Railing", value: "glass_railing" },
       { label: "Storefronts", value: "storefronts" },
       { label: "Glass Partitions", value: "glass_partitions" },
+      { label: "Sliding Systems", value: "sliding_systems" },
+      { label: "Double Glazing", value: "double_glazing" },
+      { label: "Frosted Glass", value: "frosted_glass" },
+      { label: "Tinted Glass", value: "tinted_glass" },
+      { label: "Glass Flooring", value: "glass_flooring" }
     ]
   },
   {
     label: "Landscaping",
     value: "landscaping",
+    description: "Supply & Landscape",
     subcategories: [
       { label: "Garden Design", value: "garden_design" },
       { label: "Irrigation Systems", value: "irrigation" },
@@ -170,11 +226,17 @@ export const constructionCategories: CategoryOption[] = [
       { label: "Retaining Walls", value: "landscape_walls" },
       { label: "Decking", value: "decking" },
       { label: "Fencing", value: "fencing" },
+      { label: "Artificial Turf", value: "artificial_turf" },
+      { label: "Gazebo Construction", value: "gazebo" },
+      { label: "Pergolas", value: "landscape_pergolas" },
+      { label: "Ponds", value: "ponds" },
+      { label: "Pathway Installation", value: "pathways" }
     ]
   },
   {
     label: "Finishing Materials",
     value: "finishing",
+    description: "Supply & Apply",
     subcategories: [
       { label: "Wallpaper", value: "wallpaper" },
       { label: "Interior Trim", value: "interior_trim" },
@@ -186,11 +248,17 @@ export const constructionCategories: CategoryOption[] = [
       { label: "Wall Cladding", value: "wall_cladding" },
       { label: "Veneer Finish", value: "veneer" },
       { label: "Specialty Coatings", value: "specialty_coatings" },
+      { label: "Ceramic Tiles", value: "ceramic_tiles" },
+      { label: "Stone Veneer", value: "stone_veneer_finish" },
+      { label: "Textured Finishes", value: "textured_finishes" },
+      { label: "Stucco", value: "stucco" },
+      { label: "Wainscoting", value: "wainscoting" }
     ]
   },
   {
     label: "Other",
     value: "other",
+    description: "Supply & Provide",
     subcategories: [
       { label: "Landscaping", value: "landscaping" },
       { label: "Demolition", value: "demolition" },
@@ -202,6 +270,11 @@ export const constructionCategories: CategoryOption[] = [
       { label: "Construction Management", value: "construction_management" },
       { label: "Permits & Approvals", value: "permits" },
       { label: "Professional Services", value: "professional_services" },
+      { label: "Pest Control", value: "pest_control" },
+      { label: "Temporary Structures", value: "temporary_structures" },
+      { label: "Surveying", value: "surveying" },
+      { label: "Safety Equipment", value: "safety_equipment" },
+      { label: "Rental Equipment", value: "rental_equipment" }
     ]
   }
 ];

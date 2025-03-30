@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, Send, Save, FileCheck } from "lucide-react";
@@ -248,27 +249,33 @@ const QuotationExportPage = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {lineItems.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="align-top">
-                            <div>
-                              <p className="font-medium">{constructionCategories.find(cat => cat.value === item.category)?.label}</p>
-                              {item.subcategory && (
-                                <p className="text-sm text-muted-foreground">
-                                  {constructionCategories
-                                    .find(cat => cat.value === item.category)
-                                    ?.subcategories.find(sub => sub.value === item.subcategory)?.label}
+                      {lineItems.map((item) => {
+                        const category = constructionCategories.find(cat => cat.value === item.category);
+                        const subcategory = category?.subcategories.find(sub => sub.value === item.subcategory);
+                        
+                        return (
+                          <TableRow key={item.id}>
+                            <TableCell className="align-top">
+                              <div>
+                                <p className="font-medium">{category?.label}</p>
+                                <p className="text-xs text-primary font-medium">
+                                  {category?.description}
                                 </p>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>{item.description}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>{item.unit}</TableCell>
-                          <TableCell>{formatCurrency(item.unitPrice)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(item.total)}</TableCell>
-                        </TableRow>
-                      ))}
+                                {item.subcategory && (
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {subcategory?.label}
+                                  </p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>{item.description}</TableCell>
+                            <TableCell>{item.quantity}</TableCell>
+                            <TableCell>{item.unit}</TableCell>
+                            <TableCell>{formatCurrency(item.unitPrice)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(item.total)}</TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
