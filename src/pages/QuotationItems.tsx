@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, PlusCircle, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, PlusCircle, Trash2, Edit, CheckCircle, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Select,
   SelectContent,
@@ -45,6 +47,7 @@ const QuotationItemsPage = () => {
   const [discount, setDiscount] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [clientData, setClientData] = useState<ClientFormData | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   
   useEffect(() => {
     const savedClientData = localStorage.getItem('quotationClientData');
@@ -86,6 +89,8 @@ const QuotationItemsPage = () => {
     const updatedItems = [...lineItems, newItem];
     setLineItems(updatedItems);
     localStorage.setItem('quotationLineItems', JSON.stringify(updatedItems));
+    // Set to editing mode for the new item
+    setEditingItemId(newItem.id);
   };
 
   const updateLineItem = (id: string, field: keyof LineItem, value: any) => {
@@ -117,6 +122,11 @@ const QuotationItemsPage = () => {
     setLineItems(filteredItems);
     localStorage.setItem('quotationLineItems', JSON.stringify(filteredItems));
     calculateSubtotal(filteredItems);
+    
+    // If removing the item being edited, clear the editing state
+    if (editingItemId === id) {
+      setEditingItemId(null);
+    }
   };
 
   const calculateSubtotal = (items: LineItem[]) => {
@@ -158,6 +168,14 @@ const QuotationItemsPage = () => {
     localStorage.setItem('quotationDiscount', JSON.stringify(discount));
     
     navigate("/quotation/export");
+  };
+  
+  const startEditing = (itemId: string) => {
+    setEditingItemId(itemId);
+  };
+  
+  const finishEditing = () => {
+    setEditingItemId(null);
   };
 
   return (
@@ -215,7 +233,7 @@ const QuotationItemsPage = () => {
                       <TableHead className="w-[120px]">Unit</TableHead>
                       <TableHead className="w-[150px]">Price</TableHead>
                       <TableHead className="text-right w-[120px]">Total</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -226,6 +244,7 @@ const QuotationItemsPage = () => {
                             <Select
                               value={item.category}
                               onValueChange={(value) => updateLineItem(item.id, 'category', value)}
+                              disabled={editingItemId !== item.id && editingItemId !== null}
                             >
                               <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Category" />
@@ -243,6 +262,7 @@ const QuotationItemsPage = () => {
                               <Select
                                 value={item.subcategory}
                                 onValueChange={(value) => updateLineItem(item.id, 'subcategory', value)}
+                                disabled={editingItemId !== item.id && editingItemId !== null}
                               >
                                 <SelectTrigger className="w-full">
                                   <SelectValue placeholder="Subcategory" />
@@ -261,10 +281,12 @@ const QuotationItemsPage = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Input 
+                          <Textarea 
                             value={item.description} 
                             onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
                             placeholder="Enter description"
+                            className="min-h-[80px] resize-y"
+                            disabled={editingItemId !== item.id && editingItemId !== null}
                           />
                         </TableCell>
                         <TableCell>
@@ -273,13 +295,15 @@ const QuotationItemsPage = () => {
                             value={item.quantity}
                             onChange={(e) => updateLineItem(item.id, 'quantity', Number(e.target.value))}
                             min="1"
-                            className="w-full"
+                            className="w-[120px]"
+                            disabled={editingItemId !== item.id && editingItemId !== null}
                           />
                         </TableCell>
                         <TableCell>
                           <Select 
                             value={item.unit}
                             onValueChange={(value) => updateLineItem(item.id, 'unit', value)}
+                            disabled={editingItemId !== item.id && editingItemId !== null}
                           >
                             <SelectTrigger className="w-full">
                               <SelectValue />
@@ -302,7 +326,8 @@ const QuotationItemsPage = () => {
                               onChange={(e) => updateLineItem(item.id, 'unitPrice', Number(e.target.value))}
                               min="0"
                               step="0.01"
-                              className="w-full"
+                              className="w-[120px]"
+                              disabled={editingItemId !== item.id && editingItemId !== null}
                             />
                           </div>
                         </TableCell>
@@ -310,13 +335,35 @@ const QuotationItemsPage = () => {
                           {formatCurrency(item.total)}
                         </TableCell>
                         <TableCell>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => removeLineItem(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center space-x-1">
+                            {editingItemId === item.id ? (
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={finishEditing}
+                                className="text-green-500 hover:text-green-600 hover:bg-green-100"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => startEditing(item.id)}
+                                disabled={editingItemId !== null}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => removeLineItem(item.id)}
+                              className="text-red-500 hover:text-red-600 hover:bg-red-100"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -335,6 +382,7 @@ const QuotationItemsPage = () => {
                 variant="outline" 
                 onClick={addLineItem}
                 className="w-full"
+                disabled={editingItemId !== null}
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add Item
@@ -387,7 +435,7 @@ const QuotationItemsPage = () => {
               </div>
               
               <div className="flex justify-end pt-4">
-                <Button onClick={handleContinue}>
+                <Button onClick={handleContinue} disabled={editingItemId !== null}>
                   Continue to Export
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
