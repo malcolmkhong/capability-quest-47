@@ -28,6 +28,8 @@ interface LineItem {
   unit: string;
   unitPrice: number;
   total: number;
+  materialId?: string;
+  materialName?: string;
 }
 
 const QuotationExportPage = () => {
@@ -318,6 +320,11 @@ const QuotationExportPage = () => {
                                 {item.subcategory && (
                                   <p className="text-sm text-muted-foreground mt-1">
                                     {subcategory?.label}
+                                  </p>
+                                )}
+                                {item.materialName && (
+                                  <p className="text-xs bg-primary/10 text-primary p-1 rounded-sm mt-2">
+                                    Material: {item.materialName}
                                   </p>
                                 )}
                               </div>

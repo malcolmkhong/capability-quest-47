@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, PlusCircle, Trash2, Edit, CheckCircle, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, PlusCircle, Trash2, Edit, CheckCircle, Database, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -23,7 +27,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Navigation from "@/components/Navigation";
+import MaterialSelector from "@/components/MaterialSelector";
 import { constructionCategories, constructionUnits } from "@/utils/constructionCategories";
+import { Material } from "@/utils/materialDatabase";
 import { useToast } from "@/hooks/use-toast";
 import { ClientFormData } from "./QuotationClient";
 
@@ -36,6 +42,8 @@ interface LineItem {
   unit: string;
   unitPrice: number;
   total: number;
+  materialId?: string;
+  materialName?: string;
 }
 
 const QuotationItemsPage = () => {
@@ -48,6 +56,7 @@ const QuotationItemsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [clientData, setClientData] = useState<ClientFormData | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [lastAddedItem, setLastAddedItem] = useState<string | null>(null);
   
   useEffect(() => {
     const savedClientData = localStorage.getItem('quotationClientData');
@@ -91,6 +100,8 @@ const QuotationItemsPage = () => {
     localStorage.setItem('quotationLineItems', JSON.stringify(updatedItems));
     // Set to editing mode for the new item
     setEditingItemId(newItem.id);
+    // Keep track of last added item for auto-scrolling
+    setLastAddedItem(newItem.id);
   };
 
   const updateLineItem = (id: string, field: keyof LineItem, value: any) => {
@@ -177,6 +188,49 @@ const QuotationItemsPage = () => {
   const finishEditing = () => {
     setEditingItemId(null);
   };
+  
+  const handleSelectMaterial = (itemId: string, material: Material) => {
+    const updatedItems = lineItems.map(item => {
+      if (item.id === itemId) {
+        const category = material.category || item.category;
+        const subcategory = material.subcategory || item.subcategory;
+        
+        return {
+          ...item,
+          category,
+          subcategory,
+          unit: material.unit,
+          unitPrice: material.unitPrice,
+          total: item.quantity * material.unitPrice,
+          description: item.description || material.description || "",
+          materialId: material.id,
+          materialName: material.name
+        };
+      }
+      return item;
+    });
+    
+    setLineItems(updatedItems);
+    localStorage.setItem('quotationLineItems', JSON.stringify(updatedItems));
+    calculateSubtotal(updatedItems);
+    
+    toast({
+      title: "Material added",
+      description: `Added ${material.name} to your quotation`,
+    });
+  };
+
+  // Use effect to scroll to newly added item
+  useEffect(() => {
+    if (lastAddedItem) {
+      const element = document.getElementById(`item-${lastAddedItem}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      // Reset after scrolling
+      setLastAddedItem(null);
+    }
+  }, [lastAddedItem]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -233,14 +287,19 @@ const QuotationItemsPage = () => {
                       <TableHead className="w-[120px]">Unit</TableHead>
                       <TableHead className="w-[150px]">Price</TableHead>
                       <TableHead className="text-right w-[120px]">Total</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
+                      <TableHead className="w-[140px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {lineItems.map((item) => (
-                      <TableRow key={item.id}>
+                      <TableRow key={item.id} id={`item-${item.id}`}>
                         <TableCell>
                           <div className="space-y-2">
+                            {item.materialName && (
+                              <div className="bg-primary/10 text-primary text-xs font-medium p-1 rounded-sm mb-1">
+                                {item.materialName}
+                              </div>
+                            )}
                             <Select
                               value={item.category}
                               onValueChange={(value) => updateLineItem(item.id, 'category', value)}
@@ -281,13 +340,25 @@ const QuotationItemsPage = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Textarea 
-                            value={item.description} 
-                            onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
-                            placeholder="Enter description"
-                            className="min-h-[80px] resize-y"
-                            disabled={editingItemId !== item.id && editingItemId !== null}
-                          />
+                          <div>
+                            <Textarea 
+                              value={item.description} 
+                              onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
+                              placeholder="Enter description"
+                              className="min-h-[80px] resize-y"
+                              disabled={editingItemId !== item.id && editingItemId !== null}
+                            />
+                            {editingItemId === item.id && item.category && (
+                              <div className="mt-2">
+                                <MaterialSelector 
+                                  onSelectMaterial={(material) => handleSelectMaterial(item.id, material)}
+                                  selectedCategory={item.category}
+                                  buttonVariant="outline"
+                                  buttonText="Select from Material Database"
+                                />
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Input 
@@ -355,11 +426,36 @@ const QuotationItemsPage = () => {
                                 <Edit className="h-4 w-4" />
                               </Button>
                             )}
+                            
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  disabled={editingItemId !== null && editingItemId !== item.id}
+                                  className="text-primary"
+                                >
+                                  <Database className="h-4 w-4" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80">
+                                <div className="space-y-4">
+                                  <h4 className="font-medium">Quick Add Material</h4>
+                                  <MaterialSelector 
+                                    onSelectMaterial={(material) => handleSelectMaterial(item.id, material)}
+                                    selectedCategory={item.category || undefined}
+                                    buttonText="Browse Materials"
+                                  />
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                            
                             <Button 
                               variant="ghost" 
                               size="icon"
                               onClick={() => removeLineItem(item.id)}
                               className="text-red-500 hover:text-red-600 hover:bg-red-100"
+                              disabled={editingItemId !== null && editingItemId !== item.id}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
