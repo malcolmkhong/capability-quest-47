@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, Send, Save, FileCheck } from "lucide-react";
+import { ArrowLeft, Download, Send, Save, FileCheck, Edit } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import Navigation from "@/components/Navigation";
 import { useToast } from "@/hooks/use-toast";
 import { ClientFormData } from "./QuotationClient";
@@ -38,6 +39,9 @@ const QuotationExportPage = () => {
   const [discount, setDiscount] = useState(0);
   const [subtotal, setSubtotal] = useState(0);
   const [quotationNumber, setQuotationNumber] = useState("");
+  const [editingTerms, setEditingTerms] = useState(false);
+  const [editingTAndC, setEditingTAndC] = useState(false);
+  const [termsAndConditions, setTermsAndConditions] = useState<string>("");
   
   useEffect(() => {
     const date = new Date();
@@ -81,6 +85,42 @@ const QuotationExportPage = () => {
     
     if (savedTaxRate) setTaxRate(JSON.parse(savedTaxRate));
     if (savedDiscount) setDiscount(JSON.parse(savedDiscount));
+
+    // Load saved T&C if available, otherwise use default
+    const savedTAndC = localStorage.getItem('quotationTermsAndConditions');
+    if (savedTAndC) {
+      setTermsAndConditions(savedTAndC);
+    } else {
+      // Set default construction T&C
+      setTermsAndConditions(
+`1. VALIDITY: This quotation is valid for 30 days from the date of issue.
+
+2. PAYMENT TERMS: 
+   - 30% deposit upon acceptance of quotation
+   - 40% upon completion of 50% of work
+   - 30% upon completion of work and prior to handover
+
+3. SCOPE OF WORK: Only works specified in this quotation are included. Any additional work will be charged separately.
+
+4. MATERIALS: All materials supplied will be of good quality and as per specifications. Any changes must be agreed in writing.
+
+5. TIMING: Completion dates are estimates only and subject to site conditions, weather, and material availability.
+
+6. VARIATIONS: Any variations or additional works requested by the client will be subject to additional charges and may affect completion timeline.
+
+7. DISPUTES: Any disputes arising shall be resolved through negotiation in good faith before any legal action.
+
+8. WARRANTY: Workmanship is guaranteed for 6 months from completion date. Material warranties as per manufacturer terms.
+
+9. SITE ACCESS: Client must provide reasonable access to site, water, and electricity for construction purposes.
+
+10. PERMITS & APPROVALS: Client is responsible for obtaining necessary permits unless specifically included in this quotation.
+
+11. SITE SAFETY: All reasonable safety precautions will be taken during construction. Site visitors must adhere to safety guidelines.
+
+12. CLEAN-UP: Basic clean-up is included, but not detailed or professional cleaning services.`
+      );
+    }
   }, [navigate, toast]);
   
   const calculateTax = () => {
@@ -113,6 +153,9 @@ const QuotationExportPage = () => {
   };
   
   const handleSaveQuotation = () => {
+    // Save terms and conditions to localStorage
+    localStorage.setItem('quotationTermsAndConditions', termsAndConditions);
+    
     toast({
       title: "Quotation saved",
       description: `Quotation ${quotationNumber} has been saved successfully`,
@@ -138,12 +181,30 @@ const QuotationExportPage = () => {
     localStorage.removeItem('quotationLineItems');
     localStorage.removeItem('quotationTaxRate');
     localStorage.removeItem('quotationDiscount');
+    localStorage.removeItem('quotationTermsAndConditions');
     
     navigate("/quotation/client");
     
     toast({
       title: "New quotation",
       description: "Starting a new quotation",
+    });
+  };
+
+  const handleSaveTerms = () => {
+    setEditingTerms(false);
+    toast({
+      title: "Payment terms updated",
+      description: "Payment terms have been updated successfully",
+    });
+  };
+
+  const handleSaveTAndC = () => {
+    setEditingTAndC(false);
+    localStorage.setItem('quotationTermsAndConditions', termsAndConditions);
+    toast({
+      title: "Terms & Conditions updated",
+      description: "Terms & Conditions have been updated successfully",
     });
   };
 
@@ -224,13 +285,6 @@ const QuotationExportPage = () => {
                       <p><span className="font-medium">Valid Until:</span> {formatDate(clientData.validUntil)}</p>
                     </div>
                   </div>
-                  
-                  <div>
-                    <h3 className="font-medium mb-2">Payment Terms</h3>
-                    <div className="bg-muted p-4 rounded-md">
-                      <p>{clientData.paymentTerms}</p>
-                    </div>
-                  </div>
                 </div>
               )}
               
@@ -301,6 +355,85 @@ const QuotationExportPage = () => {
                     <span>{formatCurrency(calculateTotal())}</span>
                   </div>
                 </div>
+              </div>
+
+              {/* Payment Terms Section */}
+              <div className="mt-8 border-t pt-6">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-medium text-lg">Payment Terms</h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setEditingTerms(!editingTerms)}
+                    className="h-8"
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    {editingTerms ? "Cancel" : "Edit"}
+                  </Button>
+                </div>
+                
+                {editingTerms ? (
+                  <div className="space-y-3">
+                    <Textarea 
+                      value={clientData?.paymentTerms || ""}
+                      onChange={(e) => {
+                        if (clientData) {
+                          setClientData({
+                            ...clientData,
+                            paymentTerms: e.target.value
+                          });
+                        }
+                      }}
+                      className="min-h-[100px]"
+                    />
+                    <Button 
+                      onClick={handleSaveTerms}
+                      size="sm"
+                    >
+                      Save Payment Terms
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="bg-muted p-4 rounded-md whitespace-pre-line">
+                    {clientData?.paymentTerms || "No payment terms specified"}
+                  </div>
+                )}
+              </div>
+              
+              {/* Terms and Conditions Section */}
+              <div className="mt-8 border-t pt-6">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-medium text-lg">Terms & Conditions</h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setEditingTAndC(!editingTAndC)}
+                    className="h-8"
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    {editingTAndC ? "Cancel" : "Edit"}
+                  </Button>
+                </div>
+                
+                {editingTAndC ? (
+                  <div className="space-y-3">
+                    <Textarea 
+                      value={termsAndConditions}
+                      onChange={(e) => setTermsAndConditions(e.target.value)}
+                      className="min-h-[200px] font-mono text-sm"
+                    />
+                    <Button 
+                      onClick={handleSaveTAndC}
+                      size="sm"
+                    >
+                      Save Terms & Conditions
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="bg-muted p-4 rounded-md whitespace-pre-line text-sm">
+                    {termsAndConditions || "No terms and conditions specified"}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
