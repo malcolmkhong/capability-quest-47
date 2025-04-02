@@ -51,7 +51,7 @@ const MaterialSelector = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [materials, setMaterials] = useState<Material[]>([]);
   const [filteredMaterials, setFilteredMaterials] = useState<Material[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState<string>(selectedCategory || "");
+  const [categoryFilter, setCategoryFilter] = useState<string>(selectedCategory || "all_categories");
   const [isOpen, setIsOpen] = useState(false);
   
   useEffect(() => {
@@ -66,7 +66,7 @@ const MaterialSelector = ({
   
   useEffect(() => {
     // When category filter changes
-    if (categoryFilter) {
+    if (categoryFilter && categoryFilter !== "all_categories") {
       setFilteredMaterials(getMaterialsByCategory(categoryFilter));
     } else {
       setFilteredMaterials(getAllMaterials());
@@ -77,7 +77,7 @@ const MaterialSelector = ({
     // When search query changes
     if (searchQuery.trim() === "") {
       // If no search query, show category-filtered or all materials
-      if (categoryFilter) {
+      if (categoryFilter && categoryFilter !== "all_categories") {
         setFilteredMaterials(getMaterialsByCategory(categoryFilter));
       } else {
         setFilteredMaterials(getAllMaterials());
@@ -86,7 +86,7 @@ const MaterialSelector = ({
       // If there's a search query, search within current category filter
       const searchResults = searchMaterials(searchQuery);
       
-      if (categoryFilter) {
+      if (categoryFilter && categoryFilter !== "all_categories") {
         setFilteredMaterials(
           searchResults.filter(material => material.category === categoryFilter)
         );
