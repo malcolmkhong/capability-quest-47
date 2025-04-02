@@ -76,12 +76,12 @@ const QuotationExportPage = () => {
   const [sectionTotals, setSectionTotals] = useState<SectionTotal[]>([]);
   const [activeTab, setActiveTab] = useState("preview");
   
-  // New state for logo
+  // State for logo
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // New state for editing descriptions
+  // State for editing descriptions
   const [editingLineItem, setEditingLineItem] = useState<string | null>(null);
   const [editedDescriptions, setEditedDescriptions] = useState<{[key: string]: string}>({});
   
@@ -260,6 +260,7 @@ const QuotationExportPage = () => {
     }));
     
     localStorage.setItem('quotationLineItems', JSON.stringify(updatedLineItems));
+    setLineItems(updatedLineItems);
     
     toast({
       title: "Quotation saved",
@@ -268,6 +269,9 @@ const QuotationExportPage = () => {
   };
   
   const handleEmailToClient = () => {
+    // Save the data first before emailing
+    handleSaveQuotation();
+    
     toast({
       title: "Email sent",
       description: `Quotation sent to ${clientData?.clientEmail}`,
@@ -275,6 +279,9 @@ const QuotationExportPage = () => {
   };
   
   const handleDownloadPDF = () => {
+    // Save the data first before downloading
+    handleSaveQuotation();
+    
     toast({
       title: "PDF generated",
       description: "Your quotation PDF is downloading",
@@ -352,6 +359,9 @@ const QuotationExportPage = () => {
       setLogoUrl(result);
       setUploadingLogo(false);
       
+      // Save logo to localStorage immediately after upload
+      localStorage.setItem('quotationLogo', result);
+      
       toast({
         title: "Logo uploaded",
         description: "Company logo has been updated successfully",
@@ -388,6 +398,10 @@ const QuotationExportPage = () => {
       ...editedDescriptions,
       [itemId]: description
     });
+  };
+  
+  const handleEditLineItemInPreview = (itemId: string) => {
+    setEditingLineItem(itemId);
   };
 
   return (
@@ -441,12 +455,43 @@ const QuotationExportPage = () => {
                         className="max-h-24 max-w-full object-contain" 
                       />
                     </div>
-                  ) : null}
+                  ) : (
+                    <div className="flex flex-col items-center mb-4">
+                      <input 
+                        type="file" 
+                        id="preview-logo-upload" 
+                        accept="image/*"
+                        className="hidden" 
+                        onChange={handleLogoUpload}
+                      />
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => document.getElementById('preview-logo-upload')?.click()}
+                        disabled={uploadingLogo}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {uploadingLogo ? "Uploading..." : "Add Logo"}
+                      </Button>
+                      <p className="text-xs text-gray-500 mt-1">Max size: 5MB</p>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex flex-col md:flex-row justify-between items-start">
                   <div className="mb-6 md:mb-0">
-                    <h1 className="text-2xl font-bold text-gray-900">{companyDetails.name}</h1>
+                    <div className="flex items-center gap-2">
+                      <h1 className="text-2xl font-bold text-gray-900">{companyDetails.name}</h1>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 w-6 p-0"
+                        onClick={() => setEditingCompanyDetails(true)}
+                      >
+                        <Edit className="h-3 w-3" />
+                        <span className="sr-only">Edit Company Details</span>
+                      </Button>
+                    </div>
                     <p className="text-gray-600 whitespace-pre-line mt-1">{companyDetails.address}</p>
                     <p className="text-gray-600 mt-1">
                       Phone: {companyDetails.phone} | Email: {companyDetails.email}
@@ -497,7 +542,17 @@ const QuotationExportPage = () => {
               
               {/* Line Items Table */}
               <div className="p-8">
-                <h3 className="text-xl font-semibold mb-4">SCOPE OF WORK</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold">SCOPE OF WORK</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActiveTab("edit")}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit All Details
+                  </Button>
+                </div>
                 {Object.entries(sections).map(([categoryKey, items], sectionIndex) => {
                   const category = constructionCategories.find(cat => cat.value === categoryKey);
                   return (
@@ -523,23 +578,40 @@ const QuotationExportPage = () => {
                                 <TableCell className="align-top">
                                   <div>
                                     <p className="font-medium">{subcategory?.label || item.description}</p>
-                                    <p className="text-sm text-gray-600 mt-1">
-                                      {editingLineItem === item.id ? (
+                                    {editingLineItem === item.id ? (
+                                      <div className="mt-1">
                                         <Textarea
                                           value={editedDescriptions[item.id] || item.description}
                                           onChange={(e) => handleEditDescription(item.id, e.target.value)}
-                                          className="min-h-[60px] text-sm mt-1"
-                                          onBlur={() => setEditingLineItem(null)}
+                                          className="min-h-[60px] text-sm"
+                                          autoFocus
                                         />
-                                      ) : (
-                                        <span 
-                                          className="cursor-pointer hover:bg-gray-100 p-1 rounded inline-block w-full"
-                                          onClick={() => setEditingLineItem(item.id)}
-                                        >
+                                        <div className="flex justify-end mt-1 gap-2">
+                                          <Button 
+                                            size="sm" 
+                                            variant="outline" 
+                                            onClick={() => setEditingLineItem(null)}
+                                          >
+                                            Done
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-start mt-1 group">
+                                        <p className="text-sm text-gray-600 flex-grow">
                                           {editedDescriptions[item.id] || item.description}
-                                        </span>
-                                      )}
-                                    </p>
+                                        </p>
+                                        <Button 
+                                          size="sm" 
+                                          variant="ghost" 
+                                          className="h-6 px-2 invisible group-hover:visible"
+                                          onClick={() => handleEditLineItemInPreview(item.id)}
+                                        >
+                                          <Edit className="h-3 w-3" />
+                                          <span className="sr-only">Edit Description</span>
+                                        </Button>
+                                      </div>
+                                    )}
                                     {item.materialName && (
                                       <p className="text-xs text-primary mt-1">
                                         Material: {item.materialName}
@@ -600,7 +672,17 @@ const QuotationExportPage = () => {
               
               {/* Payment Terms */}
               <div className="p-8 border-t">
-                <h3 className="text-xl font-semibold mb-4">Payment Terms</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold">Payment Terms</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditingPaymentDetails(true)}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                </div>
                 <div className="space-y-2">
                   <p className="font-semibold">Payment Schedule:</p>
                   <ul className="list-disc pl-5 space-y-1">
@@ -618,7 +700,17 @@ const QuotationExportPage = () => {
               
               {/* Terms and Conditions */}
               <div className="p-8 border-t">
-                <h3 className="text-xl font-semibold mb-4">Terms and Conditions</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold">Terms and Conditions</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditingTAndC(true)}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                </div>
                 <div className="whitespace-pre-line text-sm">
                   {termsAndConditions}
                 </div>
@@ -872,6 +964,52 @@ const QuotationExportPage = () => {
                 )}
               </CardContent>
             </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Line Item Descriptions</CardTitle>
+                <CardDescription>Edit descriptions for each line item in your quotation</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {Object.entries(sections).map(([categoryKey, items]) => {
+                    const category = constructionCategories.find(cat => cat.value === categoryKey);
+                    return (
+                      <div key={categoryKey} className="border-b pb-4 mb-4 last:border-0 last:pb-0 last:mb-0">
+                        <h4 className="font-semibold mb-3">{category?.label || categoryKey}</h4>
+                        <div className="space-y-4">
+                          {items.map((item, index) => {
+                            const subcategory = category?.subcategories.find(sub => sub.value === item.subcategory);
+                            return (
+                              <div key={item.id} className="relative p-4 border rounded-md">
+                                <div className="flex justify-between items-start">
+                                  <div className="w-full">
+                                    <p className="font-medium">
+                                      {index + 1}. {subcategory?.label || item.subcategory || "Item"}
+                                      {item.materialName ? ` - ${item.materialName}` : ""}
+                                    </p>
+                                    <Label htmlFor={`description-${item.id}`} className="text-sm text-gray-600 mt-2 block">
+                                      Description
+                                    </Label>
+                                    <Textarea 
+                                      id={`description-${item.id}`}
+                                      value={editedDescriptions[item.id] || item.description}
+                                      onChange={(e) => handleEditDescription(item.id, e.target.value)}
+                                      className="mt-1"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <Button onClick={handleSaveQuotation}>Save All Descriptions</Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
         
@@ -916,4 +1054,3 @@ const QuotationExportPage = () => {
 };
 
 export default QuotationExportPage;
-
