@@ -150,7 +150,7 @@ const MaterialSelector = ({
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all_categories">All Categories</SelectItem>
                 {constructionCategories.map(category => (
                   <SelectItem key={category.value} value={category.value}>
                     {category.label}
