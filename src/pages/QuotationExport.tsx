@@ -1,7 +1,7 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, Send, Save, FileCheck, Edit, FileText, Mail } from "lucide-react";
+import { ArrowLeft, Download, Send, Save, FileCheck, Edit, FileText, Mail, Upload, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -42,6 +42,9 @@ interface SectionTotal {
   amount: number;
 }
 
+const MAX_LOGO_SIZE_MB = 5;
+const MAX_LOGO_SIZE_BYTES = MAX_LOGO_SIZE_MB * 1024 * 1024;
+
 const QuotationExportPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -73,7 +76,22 @@ const QuotationExportPage = () => {
   const [sectionTotals, setSectionTotals] = useState<SectionTotal[]>([]);
   const [activeTab, setActiveTab] = useState("preview");
   
+  // New state for logo
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // New state for editing descriptions
+  const [editingLineItem, setEditingLineItem] = useState<string | null>(null);
+  const [editedDescriptions, setEditedDescriptions] = useState<{[key: string]: string}>({});
+  
   useEffect(() => {
+    // Load saved logo if available
+    const savedLogo = localStorage.getItem('quotationLogo');
+    if (savedLogo) {
+      setLogoUrl(savedLogo);
+    }
+    
     const date = new Date();
     const year = date.getFullYear().toString().substr(-2);
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -106,6 +124,13 @@ const QuotationExportPage = () => {
     
     const items = JSON.parse(savedLineItems);
     setLineItems(items);
+    
+    // Initialize edited descriptions with original descriptions
+    const initialDescriptions: {[key: string]: string} = {};
+    items.forEach((item: LineItem) => {
+      initialDescriptions[item.id] = item.description;
+    });
+    setEditedDescriptions(initialDescriptions);
     
     // Group items by category
     const groupedSections: { [key: string]: LineItem[] } = {};
@@ -223,6 +248,19 @@ const QuotationExportPage = () => {
     localStorage.setItem('companyDetails', JSON.stringify(companyDetails));
     localStorage.setItem('paymentDetails', JSON.stringify(paymentDetails));
     
+    // Save logo to localStorage
+    if (logoUrl) {
+      localStorage.setItem('quotationLogo', logoUrl);
+    }
+    
+    // Save edited descriptions by updating lineItems
+    const updatedLineItems = lineItems.map(item => ({
+      ...item,
+      description: editedDescriptions[item.id] || item.description
+    }));
+    
+    localStorage.setItem('quotationLineItems', JSON.stringify(updatedLineItems));
+    
     toast({
       title: "Quotation saved",
       description: `Quotation ${quotationNumber} has been saved successfully`,
@@ -292,6 +330,65 @@ const QuotationExportPage = () => {
       description: "Bank details have been updated successfully",
     });
   };
+  
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > MAX_LOGO_SIZE_BYTES) {
+      toast({
+        title: "File too large",
+        description: `Logo must be less than ${MAX_LOGO_SIZE_MB}MB`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setUploadingLogo(true);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setLogoUrl(result);
+      setUploadingLogo(false);
+      
+      toast({
+        title: "Logo uploaded",
+        description: "Company logo has been updated successfully",
+      });
+    };
+    
+    reader.onerror = () => {
+      setUploadingLogo(false);
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your logo",
+        variant: "destructive"
+      });
+    };
+    
+    reader.readAsDataURL(file);
+  };
+  
+  const handleRemoveLogo = () => {
+    setLogoUrl(null);
+    localStorage.removeItem('quotationLogo');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    
+    toast({
+      title: "Logo removed",
+      description: "Company logo has been removed",
+    });
+  };
+  
+  const handleEditDescription = (itemId: string, description: string) => {
+    setEditedDescriptions({
+      ...editedDescriptions,
+      [itemId]: description
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -335,6 +432,18 @@ const QuotationExportPage = () => {
             <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden print:shadow-none">
               {/* Header Section */}
               <div className="p-8 border-b">
+                <div className="flex flex-col items-center mb-6">
+                  {logoUrl ? (
+                    <div className="relative mb-4">
+                      <img 
+                        src={logoUrl} 
+                        alt="Company Logo" 
+                        className="max-h-24 max-w-full object-contain" 
+                      />
+                    </div>
+                  ) : null}
+                </div>
+                
                 <div className="flex flex-col md:flex-row justify-between items-start">
                   <div className="mb-6 md:mb-0">
                     <h1 className="text-2xl font-bold text-gray-900">{companyDetails.name}</h1>
@@ -414,7 +523,23 @@ const QuotationExportPage = () => {
                                 <TableCell className="align-top">
                                   <div>
                                     <p className="font-medium">{subcategory?.label || item.description}</p>
-                                    <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                      {editingLineItem === item.id ? (
+                                        <Textarea
+                                          value={editedDescriptions[item.id] || item.description}
+                                          onChange={(e) => handleEditDescription(item.id, e.target.value)}
+                                          className="min-h-[60px] text-sm mt-1"
+                                          onBlur={() => setEditingLineItem(null)}
+                                        />
+                                      ) : (
+                                        <span 
+                                          className="cursor-pointer hover:bg-gray-100 p-1 rounded inline-block w-full"
+                                          onClick={() => setEditingLineItem(item.id)}
+                                        >
+                                          {editedDescriptions[item.id] || item.description}
+                                        </span>
+                                      )}
+                                    </p>
                                     {item.materialName && (
                                       <p className="text-xs text-primary mt-1">
                                         Material: {item.materialName}
@@ -521,6 +646,57 @@ const QuotationExportPage = () => {
           </TabsContent>
           
           <TabsContent value="edit" className="mt-4 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Company Logo</CardTitle>
+                <CardDescription>Upload your company logo to appear on the quotation (max 5MB)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col items-center space-y-4">
+                  {logoUrl ? (
+                    <div className="relative">
+                      <img 
+                        src={logoUrl} 
+                        alt="Company Logo" 
+                        className="max-h-32 max-w-full object-contain border p-2 rounded-md" 
+                      />
+                      <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        className="absolute -top-2 -right-2 rounded-full p-1 h-auto"
+                        onClick={handleRemoveLogo}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="border border-dashed border-gray-300 rounded-md p-8 text-center">
+                      <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-500">Upload a logo (max {MAX_LOGO_SIZE_MB}MB)</p>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef}
+                      id="logo-upload" 
+                      accept="image/*"
+                      className="hidden" 
+                      onChange={handleLogoUpload}
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingLogo}
+                    >
+                      {uploadingLogo ? "Uploading..." : "Upload Logo"}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
             <Card>
               <CardHeader>
                 <CardTitle>Company Information</CardTitle>
@@ -740,3 +916,4 @@ const QuotationExportPage = () => {
 };
 
 export default QuotationExportPage;
+
