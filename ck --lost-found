@@ -1,0 +1,137 @@
+[33mcommit 677e58d66a4d916d6e27f9b817c6b0cec2024853[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Sun Mar 30 17:15:07 2025 +0000
+
+    Refactor: Enhance quotation details
+    
+    Implement advanced features for quotation details, including material data integration and price data linking.
+
+[33mcommit 5b5833aecac8d5e93429cdac23ac04db990450cc[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Sun Mar 30 17:08:21 2025 +0000
+
+    Move T&C to bottom of quotation
+    
+    Move payment terms and other terms and conditions to the bottom of the quotation export page. Make the T&C editable.
+
+[33mcommit 210bb8d71156b0c35efcd4b661d397897748922d[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Sun Mar 30 17:03:27 2025 +0000
+
+    Add category descriptions
+    
+    Add short descriptions for each category.
+
+[33mcommit 63426efd3866495168caab4ca56d462fd3e10cda[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Sun Mar 30 16:28:03 2025 +0000
+
+    Add line item enhancements
+    
+    - Added more construction materials to the category and subcategory options.
+    - Implemented manual expansion for the description input.
+    - Added an edit button after the "Add Item" button.
+
+[33mcommit 0ac433807514f227837c1bb42c4f11ae421d30a5[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Sun Mar 30 16:10:41 2025 +0000
+
+    Refactor: Improve form components
+    
+    - Improved the form components for better usability and maintainability.
+    - Added useFormField hook for easier access to form state.
+    - Improved FormItem, FormLabel, FormControl, FormDescription, and FormMessage components.
+
+[33mcommit 9299c479564e0534002721e75bab0940e06cb211[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Thu Mar 27 15:54:15 2025 +0000
+
+    Fix: Increase input width for quantity and price
+    
+    Increase the width of the input fields for quantity and unit price in the quotation items page.
+
+[33mcommit 988ca8931d6a2a262d269fcf32d0809ce027fe73[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Thu Mar 27 15:50:25 2025 +0000
+
+    Fix: Import constructionCategories
+    
+    Import the `constructionCategories` from `src/utils/constructionCategories.ts` into `src/pages/QuotationExport.tsx` to resolve the "constructionCategories is not defined" error.
+
+[33mcommit d74e93c62e91302f923939a63ff37a615552e094[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Thu Mar 27 15:46:42 2025 +0000
+
+    Refactor: Separate quotation form into multiple pages
+
+[33mcommit 8a42cfcddcace170c7fa9674b024606395072106[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Wed Mar 26 18:11:52 2025 +0000
+
+    feat: Add subcategories to categories
+    
+    Implement subcategories for each category in the quotation form.
+
+[33mcommit 41cd56d7f209c070659b0c710f14a701392e29fe[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Wed Mar 26 18:09:32 2025 +0000
+
+    Reverted to edit edt-703cd7a2-37c3-4787-979a-e64bccf05ed8: "Add quotation enhancements
+    
+    Implement category and subcategory features for line items, and add other construction quotation related features."
+
+[33mcommit 229b480792c6f11ae59ac65cb04a9618f033a568[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Wed Mar 26 18:05:17 2025 +0000
+
+    Fix: Website loading issue after login
+    
+    Resolve the issue where the website fails to load after adding Google login functionality.
+
+[33mcommit e0b6f5b3eb95d37ff91fab404a4b65f96f1d34ee[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Wed Mar 26 18:01:48 2025 +0000
+
+    Fix: Add Clerk publishable key
+    
+    The Clerk publishable key was missing, causing an error.
+    This commit adds the key to the environment variables.
+
+[33mcommit 36ceaf9d856aa6dcc4913f4ef65ee3a3c0ac6b6f[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Wed Mar 26 18:00:27 2025 +0000
+
+    Add Google login and registration.
+    
+    Implement Google login and user registration functionality.
+
+[33mcommit ad13d959ef00ca30ada4f79b85fb0389c862dd46[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Wed Mar 26 17:58:06 2025 +0000
+
+    Add quotation enhancements
+    
+    Implement category and subcategory features for line items, and add other construction quotation related features.
+
+[33mcommit f8d61f323e4ac9a8c45d0288cc3dce5a98df436f[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Wed Mar 26 17:53:07 2025 +0000
+
+    Add initial website structure
+    
+    Create basic layout and components for the website.
+
+[33mcommit e03596f017e905ae5220034a4e62f0d6b168617d[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Mon Mar 24 11:04:13 2025 +0000
+
+    Refactor: Implement UI components
+    
+    Implement various UI components using Radix UI and Shadcn UI.
+
+[33mcommit 2f250eba03d07c6746e03fdc41151c63ed23010b[m
+Author: gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+Date:   Mon Mar 24 10:10:54 2025 +0000
+
+    Use tech stack vite_react_shadcn_ts
+    [skip gpt_engineer]
