@@ -1,10 +1,13 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { CalculatorIcon, FileText } from "lucide-react";
+import { CalculatorIcon, FileText, LogIn, LogOut, User } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navigation = () => {
+  const { currentUser, signInWithGoogle, signOut } = useAuth();
+
   return (
     <header className="border-b sticky top-0 z-40 bg-background/80 backdrop-blur-sm">
       <div className="container flex h-16 items-center justify-between">
@@ -47,10 +50,42 @@ const Navigation = () => {
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm">
-            Log In
-          </Button>
-          <Button size="sm">Sign Up</Button>
+          {currentUser ? (
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                {currentUser.photoURL ? (
+                  <img 
+                    src={currentUser.photoURL} 
+                    alt="Profile" 
+                    className="h-8 w-8 rounded-full"
+                  />
+                ) : (
+                  <User className="h-5 w-5" />
+                )}
+                <span className="text-sm font-medium hidden md:inline">
+                  {currentUser.displayName || currentUser.email}
+                </span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={signOut}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden md:inline">Sign Out</span>
+              </Button>
+            </div>
+          ) : (
+            <Button 
+              size="sm" 
+              onClick={signInWithGoogle}
+              className="flex items-center gap-2"
+            >
+              <LogIn className="h-4 w-4" />
+              Sign in with Google
+            </Button>
+          )}
         </div>
       </div>
     </header>
