@@ -1,7 +1,9 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, Send, Save, FileCheck, Edit, FileText, Mail, Upload, X } from "lucide-react";
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,6 +25,7 @@ import { ClientFormData } from "./QuotationClient";
 import { constructionCategories } from "@/utils/constructionCategories";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import EmailDialog from "@/components/EmailDialog";
 
 interface LineItem {
   id: string;
@@ -76,17 +79,16 @@ const QuotationExportPage = () => {
   const [sectionTotals, setSectionTotals] = useState<SectionTotal[]>([]);
   const [activeTab, setActiveTab] = useState("preview");
   
-  // State for logo
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // State for editing descriptions
   const [editingLineItem, setEditingLineItem] = useState<string | null>(null);
   const [editedDescriptions, setEditedDescriptions] = useState<{[key: string]: string}>({});
   
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  
   useEffect(() => {
-    // Load saved logo if available
     const savedLogo = localStorage.getItem('quotationLogo');
     if (savedLogo) {
       setLogoUrl(savedLogo);
@@ -125,14 +127,12 @@ const QuotationExportPage = () => {
     const items = JSON.parse(savedLineItems);
     setLineItems(items);
     
-    // Initialize edited descriptions with original descriptions
     const initialDescriptions: {[key: string]: string} = {};
     items.forEach((item: LineItem) => {
       initialDescriptions[item.id] = item.description;
     });
     setEditedDescriptions(initialDescriptions);
     
-    // Group items by category
     const groupedSections: { [key: string]: LineItem[] } = {};
     items.forEach((item: LineItem) => {
       const category = item.category;
@@ -143,7 +143,6 @@ const QuotationExportPage = () => {
     });
     setSections(groupedSections);
     
-    // Calculate section totals
     const totals: SectionTotal[] = [];
     Object.entries(groupedSections).forEach(([key, items]) => {
       const categoryObj = constructionCategories.find(cat => cat.value === key);
@@ -164,24 +163,20 @@ const QuotationExportPage = () => {
     if (savedTaxRate) setTaxRate(JSON.parse(savedTaxRate));
     if (savedDiscount) setDiscount(JSON.parse(savedDiscount));
     
-    // Load saved company details if available
     const savedCompanyDetails = localStorage.getItem('companyDetails');
     if (savedCompanyDetails) {
       setCompanyDetails(JSON.parse(savedCompanyDetails));
     }
     
-    // Load saved payment details if available
     const savedPaymentDetails = localStorage.getItem('paymentDetails');
     if (savedPaymentDetails) {
       setPaymentDetails(JSON.parse(savedPaymentDetails));
     }
-
-    // Load saved T&C if available, otherwise use default
+    
     const savedTAndC = localStorage.getItem('quotationTermsAndConditions');
     if (savedTAndC) {
       setTermsAndConditions(savedTAndC);
     } else {
-      // Set default construction T&C
       setTermsAndConditions(
 `1. VALIDITY: This quotation is valid for 30 days from the date of issue.
 
@@ -208,8 +203,8 @@ const QuotationExportPage = () => {
 
 11. SITE SAFETY: All reasonable safety precautions will be taken during construction. Site visitors must adhere to safety guidelines.
 
-12. CLEAN-UP: Basic clean-up is included, but not detailed or professional cleaning services.`
-      );
+12. CLEAN-UP: Basic clean-up is included, but not detailed or professional cleaning services.
+`);
     }
   }, [navigate, toast]);
   
@@ -242,18 +237,246 @@ const QuotationExportPage = () => {
     }).format(date);
   };
   
+  const generateXLSX = () => {
+    const wb = XLSX.utils.book_new();
+    
+    const headers = ["No", "Category", "Description", "Quantity", "Unit", "Unit Price", "Amount"];
+    
+    const data = lineItems.map((item, index) => {
+      const category = constructionCategories.find(cat => cat.value === item.category);
+      const subcategory = category?.subcategories.find(sub => sub.value === item.subcategory);
+      return [
+        index + 1,
+        category?.label || item.category,
+        subcategory?.label + " - " + (editedDescriptions[item.id] || item.description),
+        item.quantity,
+        item.unit,
+        item.unitPrice,
+        item.total
+      ];
+    });
+    
+    data.push(
+      ["", "", "", "", "", "Subtotal", subtotal],
+      ["", "", "", "", "", `Tax (${taxRate}%)`, calculateTax()],
+      ["", "", "", "", "", `Discount (${discount}%)`, calculateDiscount()],
+      ["", "", "", "", "", "Total", calculateTotal()]
+    );
+    
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+    
+    XLSX.utils.sheet_add_aoa(ws, [
+      ["", ""],
+      [companyDetails.name, ""],
+      [companyDetails.address.split('\n').join(', '), ""],
+      ["Phone: " + companyDetails.phone, ""],
+      ["Email: " + companyDetails.email, ""],
+      ["Registration: " + companyDetails.registrationNumber, ""],
+      ["", ""],
+      ["QUOTATION", ""],
+      ["Ref: " + quotationNumber, "Date: " + new Date().toLocaleDateString()],
+      ["Valid Until: " + (clientData?.validUntil ? formatDate(clientData.validUntil) : "N/A"), ""],
+      ["", ""],
+      ["Client: " + clientData?.clientName, ""],
+      ["Project: " + clientData?.projectName, ""],
+      ["Address: " + clientData?.projectAddress, ""],
+      ["Email: " + clientData?.clientEmail, ""],
+      ["Phone: " + clientData?.clientPhone, ""],
+      ["", ""]
+    ], { origin: "A1" });
+    
+    XLSX.utils.book_append_sheet(wb, ws, "Quotation");
+    
+    XLSX.writeFile(wb, `Quotation_${quotationNumber}.xlsx`);
+  };
+
+  const generateCSV = () => {
+    const headers = ["No", "Category", "Description", "Quantity", "Unit", "Unit Price", "Amount"];
+    
+    const data = lineItems.map((item, index) => {
+      const category = constructionCategories.find(cat => cat.value === item.category);
+      const subcategory = category?.subcategories.find(sub => sub.value === item.subcategory);
+      return [
+        index + 1,
+        category?.label || item.category,
+        subcategory?.label + " - " + (editedDescriptions[item.id] || item.description),
+        item.quantity,
+        item.unit,
+        item.unitPrice,
+        item.total
+      ];
+    });
+    
+    data.push(
+      ["", "", "", "", "", "Subtotal", subtotal],
+      ["", "", "", "", "", `Tax (${taxRate}%)`, calculateTax()],
+      ["", "", "", "", "", `Discount (${discount}%)`, calculateDiscount()],
+      ["", "", "", "", "", "Total", calculateTotal()]
+    );
+    
+    const ws = XLSX.utils.aoa_to_sheet([
+      [companyDetails.name, "", "", "", "", "", ""],
+      ["QUOTATION", "", "", "", "", "", ""],
+      ["Ref: " + quotationNumber, "", "", "", "", "Date:", new Date().toLocaleDateString()],
+      ["Client:", clientData?.clientName, "", "", "", "", ""],
+      ["Project:", clientData?.projectName, "", "", "", "", ""],
+      ["", "", "", "", "", "", ""],
+      headers,
+      ...data
+    ]);
+    
+    const csv = XLSX.utils.sheet_to_csv(ws);
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Quotation_${quotationNumber}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    
+    if (logoUrl) {
+      doc.addImage(logoUrl, 'JPEG', 140, 10, 50, 25);
+    }
+    
+    doc.setFontSize(18);
+    doc.text('QUOTATION', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.text(companyDetails.name, 10, 30);
+    const addressLines = companyDetails.address.split('\n');
+    addressLines.forEach((line, index) => {
+      doc.text(line, 10, 35 + (index * 5));
+    });
+    doc.text(`Phone: ${companyDetails.phone}`, 10, 35 + (addressLines.length * 5));
+    doc.text(`Email: ${companyDetails.email}`, 10, 40 + (addressLines.length * 5));
+    doc.text(`Registration: ${companyDetails.registrationNumber}`, 10, 45 + (addressLines.length * 5));
+    
+    doc.text(`Ref: ${quotationNumber}`, 150, 30);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 150, 35);
+    
+    doc.setFontSize(11);
+    doc.text('Bill To:', 10, 65);
+    doc.setFontSize(10);
+    doc.text(`${clientData?.clientName || ''}`, 10, 70);
+    doc.text(`${clientData?.projectName || ''}`, 10, 75);
+    const clientAddressLines = (clientData?.projectAddress || '').split('\n');
+    clientAddressLines.forEach((line, index) => {
+      doc.text(line, 10, 80 + (index * 5));
+    });
+    doc.text(`Email: ${clientData?.clientEmail || ''}`, 10, 80 + (clientAddressLines.length * 5));
+    doc.text(`Phone: ${clientData?.clientPhone || ''}`, 10, 85 + (clientAddressLines.length * 5));
+    
+    const tableColumn = ["No", "Description", "Qty", "Unit", "Unit Price", "Amount"];
+    
+    const tableRows: any[] = [];
+    
+    Object.entries(sections).forEach(([categoryKey, items]) => {
+      const category = constructionCategories.find(cat => cat.value === categoryKey);
+      
+      tableRows.push([
+        "", 
+        { content: category?.label || categoryKey, colSpan: 5, styles: { fontStyle: 'bold' } }
+      ]);
+      
+      items.forEach((item, index) => {
+        const subcategory = category?.subcategories.find(sub => sub.value === item.subcategory);
+        tableRows.push([
+          index + 1,
+          `${subcategory?.label || ''} - ${editedDescriptions[item.id] || item.description}`,
+          item.quantity,
+          item.unit,
+          formatCurrency(item.unitPrice).replace('RM', ''),
+          formatCurrency(item.total).replace('RM', '')
+        ]);
+      });
+    });
+    
+    tableRows.push(
+      [
+        "",
+        { content: "Subtotal:", colSpan: 4, styles: { fontStyle: 'bold', halign: 'right' } },
+        formatCurrency(subtotal).replace('RM', '')
+      ],
+      [
+        "",
+        { content: `Tax (${taxRate}%):`, colSpan: 4, styles: { halign: 'right' } },
+        formatCurrency(calculateTax()).replace('RM', '')
+      ],
+      [
+        "",
+        { content: `Discount (${discount}%):`, colSpan: 4, styles: { halign: 'right' } },
+        formatCurrency(calculateDiscount()).replace('RM', '')
+      ],
+      [
+        "",
+        { content: "Total:", colSpan: 4, styles: { fontStyle: 'bold', halign: 'right' } },
+        { content: formatCurrency(calculateTotal()).replace('RM', ''), styles: { fontStyle: 'bold' } }
+      ]
+    );
+    
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 100,
+      theme: 'striped',
+      headStyles: { fillColor: [60, 60, 60] },
+      margin: { top: 10 },
+      styles: { overflow: 'linebreak' },
+      columnStyles: {
+        0: { cellWidth: 10 }, 
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 15, halign: 'center' },
+        3: { cellWidth: 15, halign: 'center' },
+        4: { cellWidth: 25, halign: 'right' },
+        5: { cellWidth: 25, halign: 'right' }
+      }
+    });
+    
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    
+    doc.setFontSize(11);
+    doc.text('Payment Terms:', 10, finalY);
+    doc.setFontSize(10);
+    doc.text('50% deposit upon acceptance of quotation', 10, finalY + 5);
+    doc.text('40% upon completion of major work, prior to final finishing', 10, finalY + 10);
+    doc.text('10% upon project completion and final inspection', 10, finalY + 15);
+    
+    doc.text(`All payments to be made to:`, 10, finalY + 25);
+    doc.text(`${paymentDetails.accountName}`, 10, finalY + 30);
+    doc.text(`${paymentDetails.bankName}`, 10, finalY + 35);
+    doc.text(`Account: ${paymentDetails.accountNumber}`, 10, finalY + 40);
+    
+    const signatureY = finalY + 60;
+    
+    if (signatureY < 270) {
+      doc.line(10, signatureY, 80, signatureY);
+      doc.line(120, signatureY, 190, signatureY);
+      
+      doc.text('Client Signature', 10, signatureY + 5);
+      doc.text('Authorized Signature', 120, signatureY + 5);
+      
+      doc.text('Date: ________________', 10, signatureY + 15);
+      doc.text(`Date: ${new Date().toLocaleDateString()}`, 120, signatureY + 15);
+    }
+    
+    doc.save(`Quotation_${quotationNumber}.pdf`);
+  };
+  
   const handleSaveQuotation = () => {
-    // Save all editable content to localStorage
     localStorage.setItem('quotationTermsAndConditions', termsAndConditions);
     localStorage.setItem('companyDetails', JSON.stringify(companyDetails));
     localStorage.setItem('paymentDetails', JSON.stringify(paymentDetails));
     
-    // Save logo to localStorage
     if (logoUrl) {
       localStorage.setItem('quotationLogo', logoUrl);
     }
     
-    // Save edited descriptions by updating lineItems
     const updatedLineItems = lineItems.map(item => ({
       ...item,
       description: editedDescriptions[item.id] || item.description
@@ -262,29 +485,38 @@ const QuotationExportPage = () => {
     localStorage.setItem('quotationLineItems', JSON.stringify(updatedLineItems));
     setLineItems(updatedLineItems);
     
+    generateXLSX();
+    generateCSV();
+    
     toast({
       title: "Quotation saved",
-      description: `Quotation ${quotationNumber} has been saved successfully`,
+      description: `Quotation ${quotationNumber} has been saved as XLSX and CSV files`,
     });
   };
   
   const handleEmailToClient = () => {
-    // Save the data first before emailing
     handleSaveQuotation();
     
+    setEmailDialogOpen(true);
+  };
+  
+  const handleSendEmail = (to: string, subject: string, message: string) => {
     toast({
       title: "Email sent",
-      description: `Quotation sent to ${clientData?.clientEmail}`,
+      description: `Quotation sent to ${to}`,
     });
   };
   
   const handleDownloadPDF = () => {
-    // Save the data first before downloading
-    handleSaveQuotation();
+    localStorage.setItem('quotationTermsAndConditions', termsAndConditions);
+    localStorage.setItem('companyDetails', JSON.stringify(companyDetails));
+    localStorage.setItem('paymentDetails', JSON.stringify(paymentDetails));
+    
+    generatePDF();
     
     toast({
       title: "PDF generated",
-      description: "Your quotation PDF is downloading",
+      description: "Your quotation PDF has been downloaded",
     });
   };
   
@@ -359,7 +591,6 @@ const QuotationExportPage = () => {
       setLogoUrl(result);
       setUploadingLogo(false);
       
-      // Save logo to localStorage immediately after upload
       localStorage.setItem('quotationLogo', result);
       
       toast({
@@ -444,7 +675,6 @@ const QuotationExportPage = () => {
           
           <TabsContent value="preview" className="mt-4">
             <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden print:shadow-none">
-              {/* Header Section */}
               <div className="p-8 border-b">
                 <div className="flex flex-col items-center mb-6">
                   {logoUrl ? (
@@ -515,7 +745,6 @@ const QuotationExportPage = () => {
                 </div>
               </div>
               
-              {/* Client Information */}
               {clientData && (
                 <div className="p-8 border-b">
                   <div className="flex justify-between flex-col md:flex-row">
@@ -540,7 +769,6 @@ const QuotationExportPage = () => {
                 </div>
               )}
               
-              {/* Line Items Table */}
               <div className="p-8">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-semibold">SCOPE OF WORK</h3>
@@ -642,7 +870,6 @@ const QuotationExportPage = () => {
                   );
                 })}
                 
-                {/* Summary Calculation */}
                 <div className="mt-8 border-t pt-4">
                   <div className="flex flex-col items-end">
                     <div className="w-full max-w-xs space-y-2">
@@ -670,7 +897,6 @@ const QuotationExportPage = () => {
                 </div>
               </div>
               
-              {/* Payment Terms */}
               <div className="p-8 border-t">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-semibold">Payment Terms</h3>
@@ -698,7 +924,6 @@ const QuotationExportPage = () => {
                 </div>
               </div>
               
-              {/* Terms and Conditions */}
               <div className="p-8 border-t">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-semibold">Terms and Conditions</h3>
@@ -716,7 +941,6 @@ const QuotationExportPage = () => {
                 </div>
               </div>
               
-              {/* Signatures */}
               <div className="p-8 border-t">
                 <div className="flex flex-col md:flex-row justify-between">
                   <div className="md:w-1/2 mb-6 md:mb-0">
@@ -1019,7 +1243,7 @@ const QuotationExportPage = () => {
             className="flex-1 max-w-60"
           >
             <Save className="mr-2 h-4 w-4" />
-            Save Quotation
+            Save as XLSX/CSV
           </Button>
           <Button 
             variant="outline" 
@@ -1049,6 +1273,15 @@ const QuotationExportPage = () => {
           </Button>
         </div>
       </main>
+      
+      <EmailDialog
+        open={emailDialogOpen}
+        onOpenChange={setEmailDialogOpen}
+        clientEmail={clientData?.clientEmail}
+        clientName={clientData?.clientName}
+        quotationNumber={quotationNumber}
+        onSendEmail={handleSendEmail}
+      />
     </div>
   );
 };
