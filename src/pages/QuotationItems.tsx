@@ -98,9 +98,7 @@ const QuotationItemsPage = () => {
     const updatedItems = [...lineItems, newItem];
     setLineItems(updatedItems);
     localStorage.setItem('quotationLineItems', JSON.stringify(updatedItems));
-    // Set to editing mode for the new item
     setEditingItemId(newItem.id);
-    // Keep track of last added item for auto-scrolling
     setLastAddedItem(newItem.id);
   };
 
@@ -134,7 +132,6 @@ const QuotationItemsPage = () => {
     localStorage.setItem('quotationLineItems', JSON.stringify(filteredItems));
     calculateSubtotal(filteredItems);
     
-    // If removing the item being edited, clear the editing state
     if (editingItemId === id) {
       setEditingItemId(null);
     }
@@ -194,12 +191,13 @@ const QuotationItemsPage = () => {
       if (item.id === itemId) {
         const category = material.category || item.category;
         const subcategory = material.subcategory || item.subcategory;
+        const unit = material.unit || "unit";
         
         return {
           ...item,
           category,
           subcategory,
-          unit: material.unit,
+          unit,
           unitPrice: material.unitPrice,
           total: item.quantity * material.unitPrice,
           description: item.description || material.description || "",
@@ -220,14 +218,12 @@ const QuotationItemsPage = () => {
     });
   };
 
-  // Use effect to scroll to newly added item
   useEffect(() => {
     if (lastAddedItem) {
       const element = document.getElementById(`item-${lastAddedItem}`);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-      // Reset after scrolling
       setLastAddedItem(null);
     }
   }, [lastAddedItem]);

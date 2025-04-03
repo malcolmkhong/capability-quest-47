@@ -97,7 +97,13 @@ const MaterialSelector = ({
   }, [searchQuery, categoryFilter]);
   
   const handleSelectMaterial = (material: Material) => {
-    onSelectMaterial(material);
+    // Ensure the material has a unit value before selecting
+    const materialWithUnit = {
+      ...material,
+      unit: material.unit || "unit" // Default to "unit" if no unit is specified
+    };
+    
+    onSelectMaterial(materialWithUnit);
     setIsOpen(false);
     // Clear search after selection
     setSearchQuery("");
@@ -190,7 +196,7 @@ const MaterialSelector = ({
                       <TableCell className="max-w-[300px]">
                         {material.description || "No description available"}
                       </TableCell>
-                      <TableCell>{material.unit}</TableCell>
+                      <TableCell>{material.unit || "unit"}</TableCell>
                       <TableCell className="font-medium">
                         {formatCurrency(material.unitPrice)}
                       </TableCell>
