@@ -240,38 +240,15 @@ const QuotationExportPage = () => {
   const generateXLSX = () => {
     const wb = XLSX.utils.book_new();
     
-    const headers = ["No", "Category", "Description", "Quantity", "Unit", "Unit Price", "Amount"];
-    
-    const data = lineItems.map((item, index) => {
-      const category = constructionCategories.find(cat => cat.value === item.category);
-      const subcategory = category?.subcategories.find(sub => sub.value === item.subcategory);
-      return [
-        index + 1,
-        category?.label || item.category,
-        subcategory?.label + " - " + (editedDescriptions[item.id] || item.description),
-        item.quantity,
-        item.unit,
-        item.unitPrice,
-        item.total
-      ];
-    });
-    
-    data.push(
-      ["", "", "", "", "", "Subtotal", subtotal],
-      ["", "", "", "", "", `Tax (${taxRate}%)`, calculateTax()],
-      ["", "", "", "", "", `Discount (${discount}%)`, calculateDiscount()],
-      ["", "", "", "", "", "Total", calculateTotal()]
-    );
-    
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
-    
-    XLSX.utils.sheet_add_aoa(ws, [
+    // Create a worksheet for company info, title, and header
+    const wsInfo = XLSX.utils.aoa_to_sheet([
       ["", ""],
       [companyDetails.name, ""],
       [companyDetails.address.split('\n').join(', '), ""],
       ["Phone: " + companyDetails.phone, ""],
       ["Email: " + companyDetails.email, ""],
       ["Registration: " + companyDetails.registrationNumber, ""],
+      ["Website: " + companyDetails.website, ""],
       ["", ""],
       ["QUOTATION", ""],
       ["Ref: " + quotationNumber, "Date: " + new Date().toLocaleDateString()],
@@ -283,14 +260,21 @@ const QuotationExportPage = () => {
       ["Email: " + clientData?.clientEmail, ""],
       ["Phone: " + clientData?.clientPhone, ""],
       ["", ""]
-    ], { origin: "A1" });
+    ]);
     
-    XLSX.utils.book_append_sheet(wb, ws, "Quotation");
+    // Create header and style for title
+    const headerStyle = {
+      font: { bold: true, sz: 14 },
+      alignment: { horizontal: "center" }
+    };
     
-    XLSX.writeFile(wb, `Quotation_${quotationNumber}.xlsx`);
-  };
-
-  const generateCSV = () => {
+    // Apply styling to the title row
+    wsInfo['!cols'] = [{ wch: 40 }, { wch: 40 }];
+    
+    // Add info worksheet
+    XLSX.utils.book_append_sheet(wb, wsInfo, "Info");
+    
+    // Create line items worksheet with detailed data
     const headers = ["No", "Category", "Description", "Quantity", "Unit", "Unit Price", "Amount"];
     
     const data = lineItems.map((item, index) => {
@@ -307,6 +291,12 @@ const QuotationExportPage = () => {
       ];
     });
     
+    // Add section totals to the data
+    sectionTotals.forEach((section, index) => {
+      data.push(["", "", "", "", "", section.title + " Total:", section.amount]);
+    });
+    
+    // Add calculation rows
     data.push(
       ["", "", "", "", "", "Subtotal", subtotal],
       ["", "", "", "", "", `Tax (${taxRate}%)`, calculateTax()],
@@ -314,19 +304,115 @@ const QuotationExportPage = () => {
       ["", "", "", "", "", "Total", calculateTotal()]
     );
     
-    const ws = XLSX.utils.aoa_to_sheet([
-      [companyDetails.name, "", "", "", "", "", ""],
-      ["QUOTATION", "", "", "", "", "", ""],
-      ["Ref: " + quotationNumber, "", "", "", "", "Date:", new Date().toLocaleDateString()],
-      ["Client:", clientData?.clientName, "", "", "", "", ""],
-      ["Project:", clientData?.projectName, "", "", "", "", ""],
-      ["", "", "", "", "", "", ""],
-      headers,
-      ...data
+    const wsItems = XLSX.utils.aoa_to_sheet([headers, ...data]);
+    XLSX.utils.book_append_sheet(wb, wsItems, "Line Items");
+    
+    // Create Terms & Conditions worksheet
+    const wsTAndC = XLSX.utils.aoa_to_sheet([
+      ["TERMS AND CONDITIONS"],
+      [""],
+      ...termsAndConditions.split('\n').map(line => [line])
     ]);
     
+    // Add T&C worksheet
+    XLSX.utils.book_append_sheet(wb, wsTAndC, "Terms & Conditions");
+    
+    // Create Payment Details worksheet
+    const wsPayment = XLSX.utils.aoa_to_sheet([
+      ["PAYMENT DETAILS"],
+      [""],
+      ["Bank Name:", paymentDetails.bankName],
+      ["Account Name:", paymentDetails.accountName],
+      ["Account Number:", paymentDetails.accountNumber],
+      [""],
+      ["PAYMENT SCHEDULE"],
+      [""],
+      ["50% deposit upon acceptance of quotation"],
+      ["40% upon completion of major work, prior to final finishing"],
+      ["10% upon project completion and final inspection"]
+    ]);
+    
+    // Add Payment Details worksheet
+    XLSX.utils.book_append_sheet(wb, wsPayment, "Payment Details");
+    
+    // Save the workbook
+    XLSX.writeFile(wb, `Quotation_${quotationNumber}.xlsx`);
+  };
+
+  const generateCSV = () => {
+    // Create header rows with company info and title
+    const headerRows = [
+      [companyDetails.name, "", "", "", "", "", ""],
+      ["QUOTATION " + quotationNumber, "", "", "", "", "Date:", new Date().toLocaleDateString()],
+      ["Valid Until:", clientData?.validUntil ? formatDate(clientData.validUntil) : "N/A", "", "", "", "", ""],
+      ["", "", "", "", "", "", ""],
+      ["Client:", clientData?.clientName, "", "", "", "", ""],
+      ["Project:", clientData?.projectName, "", "", "", "", ""],
+      ["Address:", clientData?.projectAddress?.split('\n').join(', '), "", "", "", "", ""],
+      ["Email:", clientData?.clientEmail, "", "", "", "", ""],
+      ["Phone:", clientData?.clientPhone, "", "", "", "", ""],
+      ["", "", "", "", "", "", ""]
+    ];
+    
+    // Column headers for line items
+    const tableHeaders = ["No", "Category", "Description", "Quantity", "Unit", "Unit Price", "Amount"];
+    
+    // Line item data
+    const data = lineItems.map((item, index) => {
+      const category = constructionCategories.find(cat => cat.value === item.category);
+      const subcategory = category?.subcategories.find(sub => sub.value === item.subcategory);
+      return [
+        index + 1,
+        category?.label || item.category,
+        subcategory?.label + " - " + (editedDescriptions[item.id] || item.description),
+        item.quantity,
+        item.unit,
+        item.unitPrice,
+        item.total
+      ];
+    });
+    
+    // Section totals
+    Object.entries(sections).forEach(([categoryKey, items], index) => {
+      const category = constructionCategories.find(cat => cat.value === categoryKey);
+      const sectionTotal = items.reduce((sum, item) => sum + item.total, 0);
+      data.push(["", "", "", "", "", category?.label + " Total:", sectionTotal]);
+    });
+    
+    // Calculation rows
+    data.push(
+      ["", "", "", "", "", "Subtotal", subtotal],
+      ["", "", "", "", "", `Tax (${taxRate}%)`, calculateTax()],
+      ["", "", "", "", "", `Discount (${discount}%)`, calculateDiscount()],
+      ["", "", "", "", "", "Total", calculateTotal()]
+    );
+    
+    // Payment info
+    const paymentRows = [
+      ["", "", "", "", "", "", ""],
+      ["PAYMENT DETAILS", "", "", "", "", "", ""],
+      ["Bank Name:", paymentDetails.bankName, "", "", "", "", ""],
+      ["Account Name:", paymentDetails.accountName, "", "", "", "", ""],
+      ["Account Number:", paymentDetails.accountNumber, "", "", "", "", ""],
+      ["", "", "", "", "", "", ""],
+      ["Terms and Conditions:", "Please refer to the attached terms and conditions document", "", "", "", "", ""]
+    ];
+    
+    // Combine all rows
+    const allRows = [
+      ...headerRows,
+      tableHeaders,
+      ...data,
+      ...paymentRows
+    ];
+    
+    // Create a worksheet with all the data
+    const ws = XLSX.utils.aoa_to_sheet(allRows);
+    
+    // Convert to CSV
     const csv = XLSX.utils.sheet_to_csv(ws);
     
+    // Download the CSV file
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
