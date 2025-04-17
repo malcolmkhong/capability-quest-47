@@ -1,3 +1,4 @@
+
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { ClientFormData } from '@/pages/QuotationClient';
@@ -25,71 +26,79 @@ interface QuotationExportData {
   termsAndConditions: string;
 }
 
+// Helper function to add empty rows
+const addEmptyRows = (count: number) => Array(count).fill(['']);
+
 export const exportToXLSX = (data: QuotationExportData) => {
   const { 
     clientData, 
     lineItems, 
-    quotationNumber, 
+    quotationNumber,
     subtotal, 
     taxRate, 
-    discount, 
-    termsAndConditions 
+    discount
   } = data;
 
-  // Company Information Worksheet
-  const companySheet = [
-    ['Soterra Construction Quotation'],
-    ['Quotation Number', quotationNumber],
-    ['Date', new Date().toLocaleDateString()],
-    [],
-    ['Client Information'],
-    ['Name', clientData.clientName],
-    ['Email', clientData.clientEmail],
-    ['Phone', clientData.clientPhone || 'N/A'],
-    ['Project Name', clientData.projectName],
-    ['Project Address', clientData.projectAddress],
-    [],
-    ['Quotation Details'],
-    ['Valid Until', new Date(clientData.validUntil).toLocaleDateString()],
-    ['Payment Terms', clientData.paymentTerms]
-  ];
-
-  // Line Items Worksheet
-  const lineItemsSheet = [
-    ['Category', 'Subcategory', 'Description', 'Quantity', 'Unit', 'Unit Price', 'Total'],
-    ...lineItems.map(item => [
-      item.category,
-      item.subcategory,
+  // Company logo and header information
+  const worksheet = [
+    [''], // A1
+    ['', '', '', 'Soterra Zenith'], // B2-E2
+    ['', '', '', 'Turning idea into Structure Builder'], // B3-E3
+    ['', '', '', 'CA0397550-H'], // B4-E4
+    [''], // A5
+    ['Level 3A, Sunway Visio Tower, Lingkaran'], // A6
+    ['SV, Sunway Velocity, 55100 Kuala Lumpur.'], // A7
+    [''], // A8
+    ['', '', '', '', '', '', '', 'Quotation'], // A9-I9
+    [''], // A10
+    ['Name:', clientData.clientName], // A11-B11
+    ['H/P:', clientData.clientPhone || ''], // A12-B12
+    ['Email:', clientData.clientEmail], // A13-B13
+    [''], // A14
+    ['', '', '', '', '', '', '', 'Ref:', quotationNumber], // A15-I15
+    ['', '', '', '', '', '', '', 'Date:', new Date().toLocaleDateString('en-MY')], // A16-I16
+    [''], // A17
+    ['ATTN TO:', clientData.clientName], // A18-B18
+    ['', clientData.projectName], // A19-B19
+    ['', clientData.projectAddress], // A20-B20
+    [''], // A21
+    ['', clientData.projectDescription], // A22-B22
+    [''], // A23
+    // Table header
+    ['No', 'DESCRIPTION', 'Size', 'QTY', 'Price', 'AMOUNT'], // A24-F24
+    // Line items
+    ...lineItems.map((item, index) => [
+      index + 1,
       item.description,
+      '',
       item.quantity,
-      item.unit,
       item.unitPrice,
       item.total
-    ])
+    ]),
+    [''], // Empty row after items
+    ['', '', '', '', 'Subtotal:', subtotal], // Subtotal row
+    ['', '', '', '', 'Tax Rate:', `${taxRate}%`], // Tax rate row
+    ['', '', '', '', 'Tax Amount:', subtotal * (taxRate / 100)], // Tax amount row
+    ['', '', '', '', 'Discount:', `${discount}%`], // Discount row
+    ['', '', '', '', 'Discount Amount:', subtotal * (discount / 100)], // Discount amount row
+    ['', '', '', '', 'Total:', subtotal * (1 + taxRate / 100) * (1 - discount / 100)] // Total row
   ];
 
-  // Financial Summary Worksheet
-  const financialSheet = [
-    ['Financial Summary'],
-    ['Subtotal', subtotal],
-    ['Tax Rate', `${taxRate}%`],
-    ['Tax Amount', subtotal * (taxRate / 100)],
-    ['Discount', `${discount}%`],
-    ['Discount Amount', subtotal * (discount / 100)],
-    ['Total', subtotal * (1 + taxRate / 100) * (1 - discount / 100)]
-  ];
-
-  // Terms & Conditions Worksheet
-  const termsSheet = termsAndConditions.split('\n').map(term => [term]);
-
-  // Create workbook
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(companySheet), 'Company Info');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lineItemsSheet), 'Line Items');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(financialSheet), 'Financial Summary');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(termsSheet), 'Terms & Conditions');
+  const ws = XLSX.utils.aoa_to_sheet(worksheet);
 
-  // Generate and save XLSX file
+  // Set column widths
+  const cols = [
+    { wch: 5 },  // A
+    { wch: 40 }, // B
+    { wch: 10 }, // C
+    { wch: 8 },  // D
+    { wch: 12 }, // E
+    { wch: 12 }  // F
+  ];
+  ws['!cols'] = cols;
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Quotation');
   const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
   const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   saveAs(blob, `Quotation_${quotationNumber}.xlsx`);
@@ -99,59 +108,58 @@ export const exportToCSV = (data: QuotationExportData) => {
   const { 
     clientData, 
     lineItems, 
-    quotationNumber, 
+    quotationNumber,
     subtotal, 
     taxRate, 
-    discount, 
-    termsAndConditions 
+    discount
   } = data;
 
-  // Combine all data into a single CSV
+  // Create CSV data with the same layout as XLSX
   const csvData = [
-    // Company & Client Info
-    ['Soterra Construction Quotation'],
-    ['Quotation Number', quotationNumber],
-    ['Date', new Date().toLocaleDateString()],
     [''],
-    ['Client Information'],
-    ['Name', clientData.clientName],
-    ['Email', clientData.clientEmail],
-    ['Phone', clientData.clientPhone || 'N/A'],
-    ['Project Name', clientData.projectName],
-    ['Project Address', clientData.projectAddress],
+    ['', '', '', 'Soterra Zenith'],
+    ['', '', '', 'Turning idea into Structure Builder'],
+    ['', '', '', 'CA0397550-H'],
     [''],
-    ['Quotation Details'],
-    ['Valid Until', new Date(clientData.validUntil).toLocaleDateString()],
-    ['Payment Terms', clientData.paymentTerms],
+    ['Level 3A, Sunway Visio Tower, Lingkaran'],
+    ['SV, Sunway Velocity, 55100 Kuala Lumpur.'],
     [''],
-    // Line Items
-    ['Line Items'],
-    ['Category', 'Subcategory', 'Description', 'Quantity', 'Unit', 'Unit Price', 'Total'],
-    ...lineItems.map(item => [
-      item.category,
-      item.subcategory,
+    ['', '', '', '', '', '', '', 'Quotation'],
+    [''],
+    ['Name:', clientData.clientName],
+    ['H/P:', clientData.clientPhone || ''],
+    ['Email:', clientData.clientEmail],
+    [''],
+    ['', '', '', '', '', '', '', 'Ref:', quotationNumber],
+    ['', '', '', '', '', '', '', 'Date:', new Date().toLocaleDateString('en-MY')],
+    [''],
+    ['ATTN TO:', clientData.clientName],
+    ['', clientData.projectName],
+    ['', clientData.projectAddress],
+    [''],
+    ['', clientData.projectDescription],
+    [''],
+    // Table header
+    ['No', 'DESCRIPTION', 'Size', 'QTY', 'Price', 'AMOUNT'],
+    // Line items
+    ...lineItems.map((item, index) => [
+      index + 1,
       item.description,
+      '',
       item.quantity,
-      item.unit,
       item.unitPrice,
       item.total
     ]),
     [''],
-    // Financial Summary
-    ['Financial Summary'],
-    ['Subtotal', subtotal],
-    ['Tax Rate', `${taxRate}%`],
-    ['Tax Amount', subtotal * (taxRate / 100)],
-    ['Discount', `${discount}%`],
-    ['Discount Amount', subtotal * (discount / 100)],
-    ['Total', subtotal * (1 + taxRate / 100) * (1 - discount / 100)],
-    [''],
-    // Terms & Conditions
-    ['Terms & Conditions'],
-    ...termsAndConditions.split('\n').map(term => [term])
+    ['', '', '', '', 'Subtotal:', subtotal],
+    ['', '', '', '', 'Tax Rate:', `${taxRate}%`],
+    ['', '', '', '', 'Tax Amount:', subtotal * (taxRate / 100)],
+    ['', '', '', '', 'Discount:', `${discount}%`],
+    ['', '', '', '', 'Discount Amount:', subtotal * (discount / 100)],
+    ['', '', '', '', 'Total:', subtotal * (1 + taxRate / 100) * (1 - discount / 100)]
   ];
 
-  // Convert to CSV
+  // Convert to CSV string
   const csvContent = csvData.map(row => 
     row.map(cell => 
       typeof cell === 'string' ? `"${cell.replace(/"/g, '""')}"` : cell
@@ -162,3 +170,4 @@ export const exportToCSV = (data: QuotationExportData) => {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   saveAs(blob, `Quotation_${quotationNumber}.csv`);
 };
+
