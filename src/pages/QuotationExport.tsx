@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, Send, Save, FileCheck, Edit } from "lucide-react";
@@ -18,6 +17,7 @@ import Navigation from "@/components/Navigation";
 import { useToast } from "@/hooks/use-toast";
 import { ClientFormData } from "./QuotationClient";
 import { constructionCategories } from "@/utils/constructionCategories";
+import { exportToXLSX, exportToCSV } from '@/utils/quotationExport';
 
 interface LineItem {
   id: string;
@@ -120,8 +120,8 @@ const QuotationExportPage = () => {
 
 11. SITE SAFETY: All reasonable safety precautions will be taken during construction. Site visitors must adhere to safety guidelines.
 
-12. CLEAN-UP: Basic clean-up is included, but not detailed or professional cleaning services.`
-      );
+12. CLEAN-UP: Basic clean-up is included, but not detailed or professional cleaning services.
+`);
     }
   }, [navigate, toast]);
   
@@ -178,6 +178,58 @@ const QuotationExportPage = () => {
     });
   };
   
+  const handleDownloadXLSX = () => {
+    if (!clientData || !lineItems) {
+      toast({
+        title: "Export Failed",
+        description: "Please complete all quotation details first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    exportToXLSX({
+      clientData,
+      lineItems,
+      quotationNumber,
+      subtotal,
+      taxRate,
+      discount,
+      termsAndConditions
+    });
+
+    toast({
+      title: "XLSX Exported",
+      description: `Quotation ${quotationNumber} exported as XLSX`,
+    });
+  };
+
+  const handleDownloadCSV = () => {
+    if (!clientData || !lineItems) {
+      toast({
+        title: "Export Failed",
+        description: "Please complete all quotation details first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    exportToCSV({
+      clientData,
+      lineItems,
+      quotationNumber,
+      subtotal,
+      taxRate,
+      discount,
+      termsAndConditions
+    });
+
+    toast({
+      title: "CSV Exported",
+      description: `Quotation ${quotationNumber} exported as CSV`,
+    });
+  };
+
   const handleNewQuotation = () => {
     localStorage.removeItem('quotationClientData');
     localStorage.removeItem('quotationLineItems');
@@ -464,10 +516,18 @@ const QuotationExportPage = () => {
             <Button 
               variant="secondary" 
               className="flex-1 max-w-60"
-              onClick={handleDownloadPDF}
+              onClick={handleDownloadXLSX}
             >
               <Download className="mr-2 h-4 w-4" />
-              Download PDF
+              Download XLSX
+            </Button>
+            <Button 
+              variant="outline" 
+              className="flex-1 max-w-60"
+              onClick={handleDownloadCSV}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download CSV
             </Button>
           </div>
           
