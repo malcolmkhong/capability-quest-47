@@ -98,9 +98,7 @@ const QuotationItemsPage = () => {
     const updatedItems = [...lineItems, newItem];
     setLineItems(updatedItems);
     localStorage.setItem('quotationLineItems', JSON.stringify(updatedItems));
-    // Set to editing mode for the new item
     setEditingItemId(newItem.id);
-    // Keep track of last added item for auto-scrolling
     setLastAddedItem(newItem.id);
   };
 
@@ -134,7 +132,6 @@ const QuotationItemsPage = () => {
     localStorage.setItem('quotationLineItems', JSON.stringify(filteredItems));
     calculateSubtotal(filteredItems);
     
-    // If removing the item being edited, clear the editing state
     if (editingItemId === id) {
       setEditingItemId(null);
     }
@@ -220,14 +217,12 @@ const QuotationItemsPage = () => {
     });
   };
 
-  // Use effect to scroll to newly added item
   useEffect(() => {
     if (lastAddedItem) {
       const element = document.getElementById(`item-${lastAddedItem}`);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-      // Reset after scrolling
       setLastAddedItem(null);
     }
   }, [lastAddedItem]);
@@ -301,7 +296,7 @@ const QuotationItemsPage = () => {
                               </div>
                             )}
                             <Select
-                              value={item.category}
+                              value={item.category || undefined}
                               onValueChange={(value) => updateLineItem(item.id, 'category', value)}
                               disabled={editingItemId !== item.id && editingItemId !== null}
                             >
@@ -319,7 +314,7 @@ const QuotationItemsPage = () => {
                             
                             {item.category && (
                               <Select
-                                value={item.subcategory}
+                                value={item.subcategory || undefined}
                                 onValueChange={(value) => updateLineItem(item.id, 'subcategory', value)}
                                 disabled={editingItemId !== item.id && editingItemId !== null}
                               >
